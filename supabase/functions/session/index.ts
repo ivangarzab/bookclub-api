@@ -65,7 +65,7 @@ async function handleGetSession(req, supabaseClient) {
       )
     }
 
-    // Get club information - now including discord_channel
+    // Get club information
     const { data: clubData, error: clubError } = await supabaseClient
       .from("clubs")
       .select("id, name, discord_channel")
@@ -156,14 +156,14 @@ async function handleGetSession(req, supabaseClient) {
           year: bookData.year,
           isbn: bookData.isbn
         },
-        due_date: sessionData.due_date, // Updated from duedate
+        due_date: sessionData.due_date,
         discussions: discussionsData.map(discussion => ({
           id: discussion.id,
           title: discussion.title,
           date: discussion.date,
           location: discussion.location
         })),
-        shame_list: shameListMembers // Club-level shame list now
+        shame_list: shameListMembers
       }),
       { headers: { 'Content-Type': 'application/json' } }
     )
@@ -248,7 +248,7 @@ async function handleCreateSession(req, supabaseClient) {
         id: sessionId,
         club_id: data.club_id,
         book_id: bookData[0].id,
-        due_date: data.due_date || null // Using snake_case for consistency
+        due_date: data.due_date || null
       })
       .select()
 
@@ -291,7 +291,7 @@ async function handleCreateSession(req, supabaseClient) {
 
     // Note: Shame list is now at club level, so we don't add it here for sessions
 
-    // Get club info with discord_channel
+    // Get club info
     const { data: fullClubData, error: fullClubError } = await supabaseClient
       .from("clubs")
       .select("id, name, discord_channel")

@@ -85,7 +85,7 @@ async function handleGetMember(req, supabaseClient) {
     if (clubIds.length > 0) {
       const { data: clubsData, error: clubsError } = await supabaseClient
         .from("clubs")
-        .select("id, name, discord_channel") // Add discord_channel
+        .select("id, name, discord_channel")
         .in("id", clubIds)
 
       if (clubsError) {
@@ -101,7 +101,7 @@ async function handleGetMember(req, supabaseClient) {
     // Get shame list entries for this member (now from club level)
     const { data: shameData, error: shameError } = await supabaseClient
       .from("shamelist")
-      .select("club_id") // Changed from session_id
+      .select("club_id")
       .eq("member_id", memberId)
 
     if (shameError) {
@@ -137,9 +137,9 @@ async function handleGetMember(req, supabaseClient) {
         id: memberData.id,
         name: memberData.name,
         points: memberData.points,
-        books_read: memberData.books_read, // Updated from numberofbooksread
+        books_read: memberData.books_read,
         clubs: clubs,
-        shame_clubs: shameClubs // Updated from shameSessions to shame_clubs
+        shame_clubs: shameClubs
       }),
       { headers: { 'Content-Type': 'application/json' } }
     )
@@ -174,17 +174,37 @@ async function handleCreateMember(req, supabaseClient) {
       )
     }
 
-    // Check if member ID is provided, otherwise use an auto-incrementing ID
-    const memberId = data.id || undefined;
+    // Handle member ID generation if not provided
+    let memberId;
+    if (data.id) {
+      memberId = data.id;
+    } else {
+      // Get the highest existing ID and increment by 1
+      const { data: maxIdResult, error: idError } = await supabaseClient
+        .from("members")
+        .select("id")
+        .order("id", { ascending: false })
+        .limit(1);
+      
+      if (idError) {
+        return new Response(
+          JSON.stringify({ error: `Failed to generate ID: ${idError.message}` }),
+          { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        )
+      }
+      
+      // If no members exist yet, start with ID 1, otherwise increment the highest ID
+      memberId = maxIdResult && maxIdResult.length > 0 ? maxIdResult[0].id + 1 : 1;
+    }
 
-    // Insert member data
+    // Insert member data with the generated or provided ID
     const { data: memberData, error: memberError } = await supabaseClient
       .from("members")
       .insert({
         id: memberId,
         name: data.name,
         points: data.points || 0,
-        books_read: data.books_read || 0 // Updated from numberofbooksread
+        books_read: data.books_read || 0
       })
       .select()
 
@@ -311,7 +331,7 @@ async function handleUpdateMember(req, supabaseClient) {
     const updateData = {}
     if (data.name !== undefined) updateData.name = data.name
     if (data.points !== undefined) updateData.points = data.points
-    if (data.books_read !== undefined) updateData.books_read = data.books_read // Updated from numberOfBooksRead
+    if (data.books_read !== undefined) updateData.books_read = data.books_read
 
     let updatedMember = { id: data.id };
     let clubsUpdated = false;
