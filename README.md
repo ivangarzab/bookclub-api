@@ -196,7 +196,7 @@ The API follows RESTful principles with these main endpoints:
 
 ### Club Endpoint: `/club`
 
-## GET `/club`
+#### GET `/club`
 
 **Required Parameters:**
 
@@ -213,7 +213,7 @@ The API follows RESTful principles with these main endpoints:
 - If no members are found, returns an empty members array
 - If no active session exists, returns null for active_session
 
-## POST `/club` (Create)
+#### POST `/club` (Create)
 
 **Required Fields:**
 
@@ -244,7 +244,7 @@ The API follows RESTful principles with these main endpoints:
     - `location` - Discussion location (optional)
 - `shame_list` - Array of member IDs to be added to the club's shame list
 
-## PUT `/club` (Update)
+#### PUT `/club` (Update)
 
 **Required Fields:**
 
@@ -258,7 +258,7 @@ The API follows RESTful principles with these main endpoints:
 
 **Note:** At least one field to update must be provided, or the request will return a 400 error.
 
-## DELETE `/club`
+#### DELETE `/club`
 
 **Required Parameters:**
 
@@ -272,78 +272,12 @@ The API follows RESTful principles with these main endpoints:
   3. Shame list entries for the club
   4. Member-club associations
   5. The club itself
-
-### Member Endpoint: `/member`
-
-## GET `/member`
-
-**Required Parameters:**
-
-- `id` - The ID of the member to retrieve (as a URL query parameter)
-
-**Response:**
-
-- Returns complete member details including:
-  - Basic member information (name, points, books_read)
-  - List of clubs the member belongs to
-  - Clubs where the member is on the shame list
-
-## POST `/member` (Create)
-
-**Required Fields:**
-
-- `name` - The name of the member
-
-**Optional Fields:**
-
-- `id` - A unique identifier for the member (if not provided, an auto-incrementing ID will be used)
-- `points` - Initial points for the member (defaults to 0)
-- `books_read` - Initial number of books read (defaults to 0)
-- `clubs` - Array of club IDs to associate the member with (must be valid club IDs)
-
-**Response:**
-
-- Returns the created member with all fields including club associations
-- If some operations partially succeed (e.g., member created but club association failed), a `partial_success` flag and appropriate message are returned
-
-## PUT `/member` (Update)
-
-**Required Fields:**
-
-- `id` - The ID of the member to update
-
-**Optional Fields:**
-
-- `name` - New name for the member
-- `points` - New points value
-- `books_read` - New number of books read
-- `clubs` - Complete array of club IDs (replaces all existing club associations)
-
-**Behavior:**
-
-- Updates only the specified fields
-- If `clubs` is provided, it performs a complete replacement of club associations by:
-  - Adding associations for clubs in the new list but not in the existing list
-  - Removing associations for clubs in the existing list but not in the new list
-- Returns which components were updated (member fields, club associations)
-- If no changes were applied, returns a message indicating so
-
-## DELETE `/member`
-
-**Required Parameters:**
-
-- `id` - The ID of the member to delete (as a URL query parameter)
-
-**Behavior:**
-
-- Performs a cascading delete that removes:
-  1. Shame list entries for the member
-  2. Club associations
-  3. The member record itself
+  
+-----
 
 ### Session Endpoint: `/session`
 
-## GET `/session`
+#### GET `/session`
 
 **Required Parameters:**
 
@@ -358,7 +292,7 @@ The API follows RESTful principles with these main endpoints:
   - Discussions (sorted by date in ascending order)
   - Club's shame list members
 
-## POST `/session` (Create)
+#### POST `/session` (Create)
 
 **Required Fields:**
 
@@ -381,7 +315,7 @@ The API follows RESTful principles with these main endpoints:
   - `id` - Discussion identifier (if not provided, a UUID will be generated)
   - `location` - Discussion location
 
-## PUT `/session` (Update)
+#### PUT `/session` (Update)
 
 **Required Fields:**
 
@@ -408,7 +342,7 @@ The API follows RESTful principles with these main endpoints:
 - Returns which components were updated (book, session, discussions)
 - If no changes were applied, returns a message indicating so
 
-## DELETE `/session`
+#### DELETE `/session`
 
 **Required Parameters:**
 
@@ -420,6 +354,76 @@ The API follows RESTful principles with these main endpoints:
   1. Discussions
   2. The session itself
   3. The associated book (note: may fail if book is used by other sessions)
+
+-----
+
+### Member Endpoint: `/member`
+
+#### GET `/member`
+
+**Required Parameters:**
+
+- `id` - The ID of the member to retrieve (as a URL query parameter)
+
+**Response:**
+
+- Returns complete member details including:
+  - Basic member information (name, points, books_read)
+  - List of clubs the member belongs to
+  - Clubs where the member is on the shame list
+
+#### POST `/member` (Create)
+
+**Required Fields:**
+
+- `name` - The name of the member
+
+**Optional Fields:**
+
+- `id` - A unique identifier for the member (if not provided, an auto-incrementing ID will be used)
+- `points` - Initial points for the member (defaults to 0)
+- `books_read` - Initial number of books read (defaults to 0)
+- `clubs` - Array of club IDs to associate the member with (must be valid club IDs)
+
+**Response:**
+
+- Returns the created member with all fields including club associations
+- If some operations partially succeed (e.g., member created but club association failed), a `partial_success` flag and appropriate message are returned
+
+#### PUT `/member` (Update)
+
+**Required Fields:**
+
+- `id` - The ID of the member to update
+
+**Optional Fields:**
+
+- `name` - New name for the member
+- `points` - New points value
+- `books_read` - New number of books read
+- `clubs` - Complete array of club IDs (replaces all existing club associations)
+
+**Behavior:**
+
+- Updates only the specified fields
+- If `clubs` is provided, it performs a complete replacement of club associations by:
+  - Adding associations for clubs in the new list but not in the existing list
+  - Removing associations for clubs in the existing list but not in the new list
+- Returns which components were updated (member fields, club associations)
+- If no changes were applied, returns a message indicating so
+
+#### DELETE `/member`
+
+**Required Parameters:**
+
+- `id` - The ID of the member to delete (as a URL query parameter)
+
+**Behavior:**
+
+- Performs a cascading delete that removes:
+  1. Shame list entries for the member
+  2. Club associations
+  3. The member record itself
 
 ## Client Implementation
 
