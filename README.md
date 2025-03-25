@@ -117,7 +117,7 @@ curl --request POST \
   --data '{
     "name": "New Member",
     "points": 0,
-    "numberOfBooksRead": 0,
+    "books_read": 0,
     "clubs": ["club-1"]
   }'
 ```
@@ -179,6 +179,16 @@ supabase functions deploy --all
 supabase functions deploy club member session
 ```
 
+## Data Schema
+
+The database schema has been optimized with the following design choices:
+
+1. **Club-based Shame Lists**: Shame lists are now directly associated with clubs rather than sessions. This simplifies the data model and allows for club-wide tracking of members who haven't completed readings.
+
+2. **Discord Channel at Club Level**: The `discord_channel` field has been moved from sessions to the club level, reflecting that channels are typically associated with clubs rather than individual reading sessions.
+
+3. **Consistent Snake Case Naming**: All database fields and API parameters use consistent snake_case naming for better readability and maintainability.
+
 ## API Endpoints
 
 The API follows RESTful principles with these main endpoints:
@@ -191,9 +201,14 @@ The API follows RESTful principles with these main endpoints:
 - `id` - The ID of the club to retrieve (as a URL query parameter)
 
 **Response:**
-- Returns the club details including members, active session, and past sessions
+- Returns the club details including:
+  - Club information (name, discord_channel)
+  - Members list
+  - Active session
+  - Past sessions
+  - Shame list (members who haven't completed readings)
 - If no members are found, returns an empty members array
-- If no active session exists, returns null for activeSession
+- If no active session exists, returns null for active_session
 
 ## POST `/club` (Create)
 
@@ -202,26 +217,27 @@ The API follows RESTful principles with these main endpoints:
 
 **Optional Fields:**
 - `id` - A unique identifier for the club (if not provided, a UUID will be generated)
+- `discord_channel` - The Discord channel ID associated with this club
 - `members` - An array of member objects, each requiring:
   - `id` - Member identifier
   - `name` - Member name
   - `points` - Member points (defaults to 0 if not provided)
-  - `numberOfBooksRead` - Number of books read by member (defaults to 0 if not provided)
-- `activeSession` - Session object with:
-  - `id` - Session identifier (required if activeSession is provided)
-  - `dueDate` - Due date for the session (optional)
-  - `defaultChannel` - Default channel ID (optional)
+  - `books_read` - Number of books read by member (defaults to 0 if not provided)
+- `active_session` - Session object with:
+  - `id` - Session identifier (required if active_session is provided)
+  - `due_date` - Due date for the session (optional)
   - `book` - Book object with:
-    - `title` - Book title (required if activeSession is provided)
-    - `author` - Book author (required if activeSession is provided)
+    - `title` - Book title (required if active_session is provided)
+    - `author` - Book author (required if active_session is provided)
     - `edition` - Book edition (optional)
     - `year` - Publication year (optional)
-    - `ISBN` - ISBN number (optional)
+    - `isbn` - ISBN number (optional)
   - `discussions` - Array of discussion objects, each requiring:
     - `id` - Discussion identifier
     - `title` - Discussion title
     - `date` - Discussion date
     - `location` - Discussion location (optional)
+- `shame_list` - Array of member IDs to be added to the club's shame list
 
 ## PUT `/club` (Update)
 
@@ -230,6 +246,8 @@ The API follows RESTful principles with these main endpoints:
 
 **Optional Fields:**
 - `name` - The new name for the club
+- `discord_channel` - The Discord channel ID for the club
+- `shame_list` - Array of member IDs for the club's shame list (replaces existing list)
 
 **Note:** At least one field to update must be provided, or the request will return a 400 error.
 
@@ -241,29 +259,25 @@ The API follows RESTful principles with these main endpoints:
 **Behavior:**
 - Performs a cascading delete that removes:
   1. Discussions for any sessions in the club
-  2. Shame list entries for any sessions
-  3. Sessions belonging to the club
+  2. Sessions belonging to the club
+  3. Shame list entries for the club
   4. Member-club associations
   5. The club itself
 
-This information should help you update the README file with clear guidance on how to use each endpoint.
-
 ### Member Endpoint: `/member`
 
-## Member Endpoint: `/member`
-
-### GET `/member`
+## GET `/member`
 
 **Required Parameters:**
 - `id` - The ID of the member to retrieve (as a URL query parameter)
 
 **Response:**
 - Returns complete member details including:
-  - Basic member information (name, points, number of books read)
+  - Basic member information (name, points, books_read)
   - List of clubs the member belongs to
-  - Sessions where the member is on the shame list (with book details)
+  - Clubs where the member is on the shame list
 
-### POST `/member` (Create)
+## POST `/member` (Create)
 
 **Required Fields:**
 - `name` - The name of the member
@@ -271,14 +285,14 @@ This information should help you update the README file with clear guidance on h
 **Optional Fields:**
 - `id` - A unique identifier for the member (if not provided, an auto-incrementing ID will be used)
 - `points` - Initial points for the member (defaults to 0)
-- `numberOfBooksRead` - Initial number of books read (defaults to 0)
+- `books_read` - Initial number of books read (defaults to 0)
 - `clubs` - Array of club IDs to associate the member with (must be valid club IDs)
 
 **Response:**
 - Returns the created member with all fields including club associations
-- If some operations partially succeed (e.g., member created but club association failed), a `partialSuccess` flag and appropriate message are returned
+- If some operations partially succeed (e.g., member created but club association failed), a `partial_success` flag and appropriate message are returned
 
-### PUT `/member` (Update)
+## PUT `/member` (Update)
 
 **Required Fields:**
 - `id` - The ID of the member to update
@@ -286,7 +300,7 @@ This information should help you update the README file with clear guidance on h
 **Optional Fields:**
 - `name` - New name for the member
 - `points` - New points value
-- `numberOfBooksRead` - New number of books read
+- `books_read` - New number of books read
 - `clubs` - Complete array of club IDs (replaces all existing club associations)
 
 **Behavior:**
@@ -297,7 +311,7 @@ This information should help you update the README file with clear guidance on h
 - Returns which components were updated (member fields, club associations)
 - If no changes were applied, returns a message indicating so
 
-### DELETE `/member`
+## DELETE `/member`
 
 **Required Parameters:**
 - `id` - The ID of the member to delete (as a URL query parameter)
@@ -316,9 +330,12 @@ This information should help you update the README file with clear guidance on h
 - `id` - The ID of the session to retrieve (as a URL query parameter)
 
 **Response:**
-- Returns session details including club info, book details, discussions, and shame list
-- Discussions are sorted by date in ascending order
-- Includes member details for those on the shame list
+- Returns session details including:
+  - Club info (including discord_channel)
+  - Book details
+  - Due date
+  - Discussions (sorted by date in ascending order)
+  - Club's shame list members
 
 ## POST `/session` (Create)
 
@@ -330,18 +347,16 @@ This information should help you update the README file with clear guidance on h
 
 **Optional Fields:**
 - `id` - Session identifier (if not provided, a UUID will be generated)
-- `dueDate` - Session due date
-- `defaultChannel` - Default channel ID for the session
+- `due_date` - Session due date
 - `book` - Additional book properties:
   - `edition` - Book edition
   - `year` - Publication year
-  - `ISBN` - ISBN number
+  - `isbn` - ISBN number
 - `discussions` - Array of discussion objects, each requiring:
   - `title` - Discussion title (required)
   - `date` - Discussion date (required)
   - `id` - Discussion identifier (if not provided, a UUID will be generated)
   - `location` - Discussion location
-- `shameList` - Array of member IDs to be added to the shame list
 
 ## PUT `/session` (Update)
 
@@ -350,23 +365,21 @@ This information should help you update the README file with clear guidance on h
 
 **Optional Fields:**
 - `club_id` - New club ID (verified to exist)
-- `dueDate` - New due date
-- `defaultChannel` - New default channel
+- `due_date` - New due date
 - `book` - Book updates (at least one property required to trigger update):
   - `title` - New book title
   - `author` - New book author
   - `edition` - New book edition
   - `year` - New publication year
-  - `ISBN` - New ISBN
+  - `isbn` - New ISBN
 - `discussions` - Array of discussion objects to update or add:
   - For existing discussions: Include `id` and fields to update
   - For new discussions: Include `title` and `date` (and optionally `id`)
-- `discussionIdsToDelete` - Array of discussion IDs to remove
-- `shameList` - Complete array of member IDs (replaces existing shame list)
+- `discussion_ids_to_delete` - Array of discussion IDs to remove
 
 **Behavior:**
 - Updates only the specified fields
-- Returns which components were updated (book, session, discussions, shameList)
+- Returns which components were updated (book, session, discussions)
 - If no changes were applied, returns a message indicating so
 
 ## DELETE `/session`
@@ -376,12 +389,9 @@ This information should help you update the README file with clear guidance on h
 
 **Behavior:**
 - Performs a cascading delete that removes:
-  1. Shame list entries
-  2. Discussions
-  3. The session itself
-  4. The associated book (note: may fail if book is used by other sessions)
-
-This information should help you document how to properly use the `/session` endpoint in your README.
+  1. Discussions
+  2. The session itself
+  3. The associated book (note: may fail if book is used by other sessions)
 
 ## Client Implementation
 
@@ -419,11 +429,37 @@ class BookClubAPI:
             club_id: The ID of the club to retrieve
             
         Returns:
-            Dict containing club details including members and active session
+            Dict containing club details including members, active session, and shame list
         """
         url = f"{self.functions_url}/club"
         params = {"id": club_id}
         response = requests.get(url, headers=self.headers, params=params)
+        response.raise_for_status()
+        return response.json()
+    
+    def create_member(self, name: str, points: int = 0, books_read: int = 0, clubs: List[str] = None) -> Dict:
+        """
+        Create a new member and optionally add them to clubs.
+        
+        Args:
+            name: Member name
+            points: Initial points (default: 0)
+            books_read: Initial books read count (default: 0)
+            clubs: List of club IDs to add the member to
+            
+        Returns:
+            Dict containing the created member information
+        """
+        url = f"{self.functions_url}/member"
+        data = {
+            "name": name,
+            "points": points,
+            "books_read": books_read,
+        }
+        if clubs:
+            data["clubs"] = clubs
+            
+        response = requests.post(url, headers=self.headers, json=data)
         response.raise_for_status()
         return response.json()
     

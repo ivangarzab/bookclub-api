@@ -1,4 +1,4 @@
-// supabase/functions/session/index.ts
+// supabase/functions/session/index.ts - Updated for new schema
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -65,10 +65,10 @@ async function handleGetSession(req, supabaseClient) {
       )
     }
 
-    // Get club information
+    // Get club information - now including discord_channel
     const { data: clubData, error: clubError } = await supabaseClient
       .from("clubs")
-      .select("id, name")
+      .select("id, name, discord_channel")
       .eq("id", sessionData.club_id)
       .single()
 
@@ -107,11 +107,11 @@ async function handleGetSession(req, supabaseClient) {
       )
     }
 
-    // Get shame list
+    // Get shame list - now from club instead of session
     const { data: shameListData, error: shameListError } = await supabaseClient
       .from("shamelist")
       .select("member_id")
-      .eq("session_id", sessionId)
+      .eq("club_id", clubData.id) // Changed from session_id to club_id
 
     if (shameListError) {
       return new Response(
@@ -144,24 +144,26 @@ async function handleGetSession(req, supabaseClient) {
     return new Response(
       JSON.stringify({
         id: sessionData.id,
-        club: clubData,
+        club: {
+          ...clubData,
+          // Include discord_channel from club data
+        },
         book: {
           id: bookData.id,
           title: bookData.title,
           author: bookData.author,
           edition: bookData.edition,
           year: bookData.year,
-          ISBN: bookData.isbn
+          isbn: bookData.isbn
         },
-        duedate: sessionData.duedate,
-        defaultchannel: sessionData.defaultchannel,
+        due_date: sessionData.due_date, // Updated from duedate
         discussions: discussionsData.map(discussion => ({
           id: discussion.id,
           title: discussion.title,
           date: discussion.date,
           location: discussion.location
         })),
-        shameList: shameListMembers
+        shame_list: shameListMembers // Club-level shame list now
       }),
       { headers: { 'Content-Type': 'application/json' } }
     )
@@ -225,7 +227,7 @@ async function handleCreateSession(req, supabaseClient) {
         author: data.book.author,
         edition: data.book.edition || null,
         year: data.book.year || null,
-        ISBN: data.book.ISBN || null
+        isbn: data.book.isbn || null
       })
       .select()
 
@@ -239,15 +241,14 @@ async function handleCreateSession(req, supabaseClient) {
     // Generate a session ID if not provided
     const sessionId = data.id || crypto.randomUUID();
 
-    // Insert session data
+    // Insert session data (removing default_channel which is now on club level)
     const { data: sessionData, error: sessionError } = await supabaseClient
       .from("sessions")
       .insert({
         id: sessionId,
         club_id: data.club_id,
         book_id: bookData[0].id,
-        duedate: data.dueDate || null,
-        defaultchannel: data.defaultChannel || null
+        due_date: data.due_date || null // Using snake_case for consistency
       })
       .select()
 
@@ -288,36 +289,17 @@ async function handleCreateSession(req, supabaseClient) {
       }
     }
 
-    // Add shame list if provided
-    let shameList = [];
-    if (data.shameList && Array.isArray(data.shameList) && data.shameList.length > 0) {
-      for (const memberId of data.shameList) {
-        // Verify member exists
-        const { data: memberData, error: memberError } = await supabaseClient
-          .from("members")
-          .select("id, name")
-          .eq("id", memberId)
-          .single()
+    // Note: Shame list is now at club level, so we don't add it here for sessions
 
-        if (memberError) {
-          console.error(`Member ID ${memberId} not found: ${memberError.message}`);
-          continue;
-        }
+    // Get club info with discord_channel
+    const { data: fullClubData, error: fullClubError } = await supabaseClient
+      .from("clubs")
+      .select("id, name, discord_channel")
+      .eq("id", data.club_id)
+      .single()
 
-        const { error: shameError } = await supabaseClient
-          .from("shamelist")
-          .insert({
-            session_id: sessionId,
-            member_id: memberId
-          })
-
-        if (shameError) {
-          console.error(`Error adding member ${memberId} to shame list: ${shameError.message}`);
-          continue;
-        }
-        
-        shameList.push(memberData);
-      }
+    if (fullClubError) {
+      console.error(`Error getting full club data: ${fullClubError.message}`);
     }
 
     return new Response(
@@ -326,19 +308,17 @@ async function handleCreateSession(req, supabaseClient) {
         message: "Session created successfully",
         session: {
           id: sessionId,
-          club_id: data.club_id,
+          club: fullClubData || { id: data.club_id },
           book: {
             id: bookData[0].id,
             title: bookData[0].title,
             author: bookData[0].author,
             edition: bookData[0].edition,
             year: bookData[0].year,
-            ISBN: bookData[0].isbn
+            isbn: bookData[0].isbn
           },
-          duedate: sessionData[0].duedate,
-          defaultchannel: sessionData[0].defaultchannel,
-          discussions: discussions,
-          shameList: shameList
+          due_date: sessionData[0].due_date,
+          discussions: discussions
         }
       }),
       { headers: { 'Content-Type': 'application/json' } }
@@ -388,7 +368,7 @@ async function handleUpdateSession(req, supabaseClient) {
     
     if (data.book) {
       // Check if at least one book property is provided
-      const hasBookUpdates = ['title', 'author', 'edition', 'year', 'ISBN'].some(prop => 
+      const hasBookUpdates = ['title', 'author', 'edition', 'year', 'isbn'].some(prop => 
         data.book[prop] !== undefined
       );
       
@@ -413,7 +393,7 @@ async function handleUpdateSession(req, supabaseClient) {
           author: data.book.author !== undefined ? data.book.author : currentBook.author,
           edition: data.book.edition !== undefined ? data.book.edition : currentBook.edition,
           year: data.book.year !== undefined ? data.book.year : currentBook.year,
-          ISBN: data.book.ISBN !== undefined ? data.book.ISBN : currentBook.isbn
+          isbn: data.book.isbn !== undefined ? data.book.isbn : currentBook.isbn
         };
 
         const { error: updateBookError } = await supabaseClient
@@ -446,7 +426,7 @@ async function handleUpdateSession(req, supabaseClient) {
         return new Response(
           JSON.stringify({ 
             error: 'Club not found',
-            partialSuccess: bookUpdated,
+            partial_success: bookUpdated,
             message: bookUpdated ? "Book was updated but session club_id was not" : null
           }),
           { headers: { 'Content-Type': 'application/json' }, status: 404 }
@@ -456,8 +436,7 @@ async function handleUpdateSession(req, supabaseClient) {
       sessionUpdateData.club_id = data.club_id;
     }
     
-    if (data.dueDate !== undefined) sessionUpdateData.duedate = data.dueDate;
-    if (data.defaultChannel !== undefined) sessionUpdateData.defaultchannel = data.defaultChannel;
+    if (data.due_date !== undefined) sessionUpdateData.due_date = data.due_date;
 
     let sessionUpdated = false;
     if (Object.keys(sessionUpdateData).length > 0) {
@@ -470,7 +449,7 @@ async function handleUpdateSession(req, supabaseClient) {
         return new Response(
           JSON.stringify({ 
             error: updateSessionError.message,
-            partialSuccess: bookUpdated,
+            partial_success: bookUpdated,
             message: bookUpdated ? "Book was updated but session was not" : null
           }),
           { headers: { 'Content-Type': 'application/json' }, status: 500 }
@@ -487,7 +466,7 @@ async function handleUpdateSession(req, supabaseClient) {
         return new Response(
           JSON.stringify({ 
             error: 'Discussions must be an array',
-            partialSuccess: bookUpdated || sessionUpdated,
+            partial_success: bookUpdated || sessionUpdated,
             message: "Some updates were applied but discussions were not modified"
           }),
           { headers: { 'Content-Type': 'application/json' }, status: 400 }
@@ -504,7 +483,7 @@ async function handleUpdateSession(req, supabaseClient) {
         return new Response(
           JSON.stringify({ 
             error: getDiscussionsError.message,
-            partialSuccess: bookUpdated || sessionUpdated,
+            partial_success: bookUpdated || sessionUpdated,
             message: "Some updates were applied but could not retrieve discussions"
           }),
           { headers: { 'Content-Type': 'application/json' }, status: 500 }
@@ -578,97 +557,26 @@ async function handleUpdateSession(req, supabaseClient) {
         }
       }
 
-      // If a discussionIdsToDelete array is provided, delete those discussions
-      if (data.discussionIdsToDelete && Array.isArray(data.discussionIdsToDelete) && data.discussionIdsToDelete.length > 0) {
+      // If a discussion_ids_to_delete array is provided, delete those discussions
+      if (data.discussion_ids_to_delete && Array.isArray(data.discussion_ids_to_delete) && data.discussion_ids_to_delete.length > 0) {
         const { error: deleteError } = await supabaseClient
           .from("discussions")
           .delete()
-          .in("id", data.discussionIdsToDelete)
+          .in("id", data.discussion_ids_to_delete)
           .eq("session_id", data.id) // Ensure we only delete discussions from this session
 
         if (deleteError) {
           console.error(`Error deleting discussions: ${deleteError.message}`);
-        } else if (data.discussionIdsToDelete.length > 0) {
+        } else if (data.discussion_ids_to_delete.length > 0) {
           discussionsUpdated = true;
         }
       }
     }
 
-    // Handle shame list updates if provided
-    let shameListUpdated = false;
-    if (data.shameList !== undefined) {
-      if (!Array.isArray(data.shameList)) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Shame list must be an array',
-            partialSuccess: bookUpdated || sessionUpdated || discussionsUpdated,
-            message: "Some updates were applied but shame list was not modified"
-          }),
-          { headers: { 'Content-Type': 'application/json' }, status: 400 }
-        )
-      }
-
-      // Get current shame list
-      const { data: currentShameList, error: getShameError } = await supabaseClient
-        .from("shamelist")
-        .select("member_id")
-        .eq("session_id", data.id)
-
-      if (getShameError) {
-        return new Response(
-          JSON.stringify({ 
-            error: getShameError.message,
-            partialSuccess: bookUpdated || sessionUpdated || discussionsUpdated,
-            message: "Some updates were applied but could not retrieve shame list"
-          }),
-          { headers: { 'Content-Type': 'application/json' }, status: 500 }
-        )
-      }
-
-      const currentMemberIds = currentShameList.map(item => item.member_id);
-      
-      // Members to add (in new list but not in current)
-      const membersToAdd = data.shameList.filter(id => !currentMemberIds.includes(id));
-      
-      // Members to remove (in current but not in new list)
-      const membersToRemove = currentMemberIds.filter(id => !data.shameList.includes(id));
-
-      // Add new members to shame list
-      if (membersToAdd.length > 0) {
-        const shameEntries = membersToAdd.map(memberId => ({
-          session_id: data.id,
-          member_id: memberId
-        }));
-
-        const { error: addError } = await supabaseClient
-          .from("shamelist")
-          .insert(shameEntries)
-
-        if (addError) {
-          console.error(`Error adding members to shame list: ${addError.message}`);
-        } else {
-          shameListUpdated = true;
-        }
-      }
-
-      // Remove members from shame list
-      if (membersToRemove.length > 0) {
-        const { error: removeError } = await supabaseClient
-          .from("shamelist")
-          .delete()
-          .eq("session_id", data.id)
-          .in("member_id", membersToRemove)
-
-        if (removeError) {
-          console.error(`Error removing members from shame list: ${removeError.message}`);
-        } else if (membersToRemove.length > 0) {
-          shameListUpdated = true;
-        }
-      }
-    }
+    // Note: Shame list management is now at the club level, not session level
 
     // If nothing was updated
-    if (!bookUpdated && !sessionUpdated && !discussionsUpdated && !shameListUpdated) {
+    if (!bookUpdated && !sessionUpdated && !discussionsUpdated) {
       return new Response(
         JSON.stringify({ message: "No changes to apply" }),
         { headers: { 'Content-Type': 'application/json' } }
@@ -682,8 +590,7 @@ async function handleUpdateSession(req, supabaseClient) {
         updates: {
           book: bookUpdated,
           session: sessionUpdated,
-          discussions: discussionsUpdated,
-          shameList: shameListUpdated
+          discussions: discussionsUpdated
         }
       }),
       { headers: { 'Content-Type': 'application/json' } }
@@ -730,20 +637,7 @@ async function handleDeleteSession(req, supabaseClient) {
     // Store the book_id for later
     const bookId = existingSession.book_id;
 
-    // Delete shame list entries first
-    const { error: shameError } = await supabaseClient
-      .from("shamelist")
-      .delete()
-      .eq("session_id", sessionId)
-
-    if (shameError) {
-      return new Response(
-        JSON.stringify({ error: `Failed to delete shame list entries: ${shameError.message}` }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
-      )
-    }
-
-    // Delete discussions
+    // Delete discussions first
     const { error: discussionsError } = await supabaseClient
       .from("discussions")
       .delete()
@@ -770,7 +664,7 @@ async function handleDeleteSession(req, supabaseClient) {
     }
 
     // Delete the book
-    // Note: You might want to check if this book is used by other sessions before deleting
+    // TODO: Note: You might want to check if this book is used by other sessions before deleting
     const { error: deleteBookError } = await supabaseClient
       .from("books")
       .delete()
