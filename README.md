@@ -4,7 +4,7 @@ This repository contains Supabase Edge Functions that serve as the API for the B
 
 ## Repository Structure
 
-```
+``` text
 bookclub-api/
 ├── supabase/
 │   ├── migrations/            # Database migrations pulled from production
@@ -82,45 +82,46 @@ If you see warnings about config differences between local and production, you c
 
 1. **Start/refresh your local environment**:
 
-```bash
-# Start Supabase if it's not running
-supabase start
+    ```bash
+    # Start Supabase if it's not running
+    supabase start
 
-# Check status and get your local anon key
-supabase status
-```
+    # Check status and get your local anon key
+    supabase status
+    ```
 
 2. **Serve Edge Functions locally for testing**:
 
-```bash
-# Serve all functions
-supabase functions serve
+    ```bash
+    # Serve all functions
+    supabase functions serve
 
-# Or serve specific functions
-supabase functions serve club member session
-```
+    # Or serve specific functions
+    supabase functions serve club member session
+    ```
 
 3. **Test with curl**:
 
-```bash
-# Test the club endpoint (get a club)
-curl --request GET \
-  --url "http://localhost:54321/functions/v1/club?id=club-1" \
-  --header "Content-Type: application/json" \
-  --header "Authorization: Bearer your-local-anon-key"
+    ```bash
+    # Test the club endpoint (get a club)
+    curl --request GET \
+      --url "http://localhost:54321/functions/v1/club?id=club-1" \
+      --header "Content-Type: application/json" \
+      --header "Authorization: Bearer your-local-anon-key"
 
-# Test creating a member
-curl --request POST \
-  --url "http://localhost:54321/functions/v1/member" \
-  --header "Content-Type: application/json" \
-  --header "Authorization: Bearer your-local-anon-key" \
-  --data '{
-    "name": "New Member",
-    "points": 0,
-    "books_read": 0,
-    "clubs": ["club-1"]
-  }'
-```
+    # Test creating a member
+    curl --request POST \
+      --url "http://localhost:54321/functions/v1/member" \
+      --header "Content-Type: application/json" \
+      --header "Authorization: Bearer your-local-anon-key" \
+      --data '{
+        "name": "New Member",
+        "points": 0,
+        "books_read": 0,
+        "clubs": ["club-1"]
+      }'
+    ```
+
 **NOTE:** Testing may also be done with Postman
 
 ### Recovering From Local Environment Issues
@@ -198,9 +199,11 @@ The API follows RESTful principles with these main endpoints:
 ## GET `/club`
 
 **Required Parameters:**
+
 - `id` - The ID of the club to retrieve (as a URL query parameter)
 
 **Response:**
+
 - Returns the club details including:
   - Club information (name, discord_channel)
   - Members list
@@ -213,9 +216,11 @@ The API follows RESTful principles with these main endpoints:
 ## POST `/club` (Create)
 
 **Required Fields:**
+
 - `name` - The name of the club
 
 **Optional Fields:**
+
 - `id` - A unique identifier for the club (if not provided, a UUID will be generated)
 - `discord_channel` - The Discord channel ID associated with this club
 - `members` - An array of member objects, each requiring:
@@ -242,9 +247,11 @@ The API follows RESTful principles with these main endpoints:
 ## PUT `/club` (Update)
 
 **Required Fields:**
+
 - `id` - The ID of the club to update
 
 **Optional Fields:**
+
 - `name` - The new name for the club
 - `discord_channel` - The Discord channel ID for the club
 - `shame_list` - Array of member IDs for the club's shame list (replaces existing list)
@@ -254,9 +261,11 @@ The API follows RESTful principles with these main endpoints:
 ## DELETE `/club`
 
 **Required Parameters:**
+
 - `id` - The ID of the club to delete (as a URL query parameter)
 
 **Behavior:**
+
 - Performs a cascading delete that removes:
   1. Discussions for any sessions in the club
   2. Sessions belonging to the club
@@ -269,9 +278,11 @@ The API follows RESTful principles with these main endpoints:
 ## GET `/member`
 
 **Required Parameters:**
+
 - `id` - The ID of the member to retrieve (as a URL query parameter)
 
 **Response:**
+
 - Returns complete member details including:
   - Basic member information (name, points, books_read)
   - List of clubs the member belongs to
@@ -280,30 +291,36 @@ The API follows RESTful principles with these main endpoints:
 ## POST `/member` (Create)
 
 **Required Fields:**
+
 - `name` - The name of the member
 
 **Optional Fields:**
+
 - `id` - A unique identifier for the member (if not provided, an auto-incrementing ID will be used)
 - `points` - Initial points for the member (defaults to 0)
 - `books_read` - Initial number of books read (defaults to 0)
 - `clubs` - Array of club IDs to associate the member with (must be valid club IDs)
 
 **Response:**
+
 - Returns the created member with all fields including club associations
 - If some operations partially succeed (e.g., member created but club association failed), a `partial_success` flag and appropriate message are returned
 
 ## PUT `/member` (Update)
 
 **Required Fields:**
+
 - `id` - The ID of the member to update
 
 **Optional Fields:**
+
 - `name` - New name for the member
 - `points` - New points value
 - `books_read` - New number of books read
 - `clubs` - Complete array of club IDs (replaces all existing club associations)
 
 **Behavior:**
+
 - Updates only the specified fields
 - If `clubs` is provided, it performs a complete replacement of club associations by:
   - Adding associations for clubs in the new list but not in the existing list
@@ -314,9 +331,11 @@ The API follows RESTful principles with these main endpoints:
 ## DELETE `/member`
 
 **Required Parameters:**
+
 - `id` - The ID of the member to delete (as a URL query parameter)
 
 **Behavior:**
+
 - Performs a cascading delete that removes:
   1. Shame list entries for the member
   2. Club associations
@@ -327,9 +346,11 @@ The API follows RESTful principles with these main endpoints:
 ## GET `/session`
 
 **Required Parameters:**
+
 - `id` - The ID of the session to retrieve (as a URL query parameter)
 
 **Response:**
+
 - Returns session details including:
   - Club info (including discord_channel)
   - Book details
@@ -340,12 +361,14 @@ The API follows RESTful principles with these main endpoints:
 ## POST `/session` (Create)
 
 **Required Fields:**
+
 - `club_id` - The ID of the club the session belongs to
 - `book` - An object containing book information:
   - `title` - Book title (required)
   - `author` - Book author (required)
 
 **Optional Fields:**
+
 - `id` - Session identifier (if not provided, a UUID will be generated)
 - `due_date` - Session due date
 - `book` - Additional book properties:
@@ -361,9 +384,11 @@ The API follows RESTful principles with these main endpoints:
 ## PUT `/session` (Update)
 
 **Required Fields:**
+
 - `id` - The ID of the session to update
 
 **Optional Fields:**
+
 - `club_id` - New club ID (verified to exist)
 - `due_date` - New due date
 - `book` - Book updates (at least one property required to trigger update):
@@ -378,6 +403,7 @@ The API follows RESTful principles with these main endpoints:
 - `discussion_ids_to_delete` - Array of discussion IDs to remove
 
 **Behavior:**
+
 - Updates only the specified fields
 - Returns which components were updated (book, session, discussions)
 - If no changes were applied, returns a message indicating so
@@ -385,9 +411,11 @@ The API follows RESTful principles with these main endpoints:
 ## DELETE `/session`
 
 **Required Parameters:**
+
 - `id` - The ID of the session to delete (as a URL query parameter)
 
 **Behavior:**
+
 - Performs a cascading delete that removes:
   1. Discussions
   2. The session itself
@@ -515,6 +543,7 @@ else:
 ### Connection Issues
 
 If you can't connect to your local Supabase:
+
 - Check if Docker is running
 - Ensure ports 54321-54326 aren't in use by other applications
 - Try stopping and restarting with `supabase stop` and `supabase start`
@@ -522,12 +551,14 @@ If you can't connect to your local Supabase:
 ### Database Migration Issues
 
 If you encounter errors when pulling the schema:
+
 - Try repairing migrations: `supabase migration repair --status reverted [migration-id]`
 - As a last resort, delete migrations and pull again: `rm -rf supabase/migrations/* && supabase db pull`
 
 ### Function Errors
 
 If your functions aren't working:
+
 - Check the terminal output for errors
 - Add `console.log()` statements to debug
 - Verify the function URL and request format
