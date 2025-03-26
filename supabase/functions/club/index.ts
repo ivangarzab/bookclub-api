@@ -1,3 +1,4 @@
+// supabase/functions/club/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -83,9 +84,11 @@ async function handleGetClub(req, supabaseClient) {
         JSON.stringify({
           id: clubData.id,
           name: clubData.name,
+          discord_channel: clubData.discord_channel,
           members: [],
-          activeSession: null,
-          pastSessions: []
+          active_session: null,
+          past_sessions: [],
+          shame_list: []
         }),
         { headers: { 'Content-Type': 'application/json' } }
       )
@@ -119,7 +122,7 @@ async function handleGetClub(req, supabaseClient) {
           id: member.id,
           name: member.name,
           points: member.points,
-          numberufbooksRead: member.numberofbooksread,
+          books_read: member.books_read,
           clubs: memberClubs?.map(mc => mc.club_id) || []
         }
       })
@@ -130,7 +133,7 @@ async function handleGetClub(req, supabaseClient) {
       .from("sessions")
       .select("*")
       .eq("club_id", clubId)
-      .order('duedate', { ascending: false })
+      .order('due_date', { ascending: false })
       .limit(1)
 
     if (sessionsError) {
@@ -140,7 +143,7 @@ async function handleGetClub(req, supabaseClient) {
       )
     }
 
-    let activeSession = null
+    let active_session = null
     if (sessionsData.length > 0) {
       const session = sessionsData[0]
 
@@ -171,13 +174,13 @@ async function handleGetClub(req, supabaseClient) {
         )
       }
 
-      // Get shame list
-      const { data: shameListData } = await supabaseClient
+      // Get shame list - now directly from the club, not from session
+      const { data: shame_list_data } = await supabaseClient
         .from("shamelist")
         .select("member_id")
-        .eq("session_id", session.id)
+        .eq("club_id", clubId)
 
-      activeSession = {
+      active_session = {
         id: session.id,
         club_id: session.club_id,
         book: {
@@ -185,11 +188,9 @@ async function handleGetClub(req, supabaseClient) {
           author: bookData.author,
           edition: bookData.edition,
           year: bookData.year,
-          ISBN: bookData.isbn
+          isbn: bookData.isbn
         },
-        duedate: session.duedate,
-        defaultchannel: session.defaultchannel,
-        shameList: shameListData?.map(sl => sl.member_id) || [],
+        due_date: session.due_date,
         discussions: discussionsData?.map(discussion => ({
           id: discussion.id,
           session_id: discussion.session_id,
@@ -201,23 +202,40 @@ async function handleGetClub(req, supabaseClient) {
     }
 
     // Get past sessions (skip the active one if it exists)
-    const { data: pastSessionsData } = await supabaseClient
+    const { data: past_sessions_data } = await supabaseClient
       .from("sessions")
-      .select("id, duedate")
+      .select("id, due_date")
       .eq("club_id", clubId)
-      .order('duedate', { ascending: false })
-      .range(activeSession ? 1 : 0, 10) // If there's an active session, start from 1, otherwise from 0
+      .order('due_date', { ascending: false })
+      .range(active_session ? 1 : 0, 10)
 
-    const pastSessions = pastSessionsData || []
+    const past_sessions = past_sessions_data || []
+
+    // Get shame list for the club
+    const { data: shame_list_data, error: shame_list_error } = await supabaseClient
+      .from("shamelist")
+      .select("member_id")
+      .eq("club_id", clubId)
+
+    if (shame_list_error) {
+      return new Response(
+        JSON.stringify({ error: shame_list_error.message }),
+        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      )
+    }
+
+    const shame_list = shame_list_data?.map(item => item.member_id) || []
 
     // Return the full reconstructed club data
     return new Response(
       JSON.stringify({
         id: clubData.id,
         name: clubData.name,
+        discord_channel: clubData.discord_channel,
         members: membersWithClubs,
-        activeSession: activeSession,
-        pastSessions: pastSessions
+        active_session: active_session,
+        past_sessions: past_sessions,
+        shame_list: shame_list
       }),
       { headers: { 'Content-Type': 'application/json' } }
     )
@@ -255,7 +273,8 @@ async function handleCreateClub(req, supabaseClient) {
       .from("clubs")
       .insert({
         id: data.id,
-        name: data.name
+        name: data.name,
+        discord_channel: data.discord_channel || null
       })
       .select()
 
@@ -282,7 +301,7 @@ async function handleCreateClub(req, supabaseClient) {
             id: member.id,
             name: member.name,
             points: member.points || 0,
-            numberofbooksread: member.numberOfBooksRead || 0
+            books_read: member.books_read || 0
           })
 
         if (memberError) {
@@ -304,9 +323,9 @@ async function handleCreateClub(req, supabaseClient) {
       }
     }
 
-    // Handle optional activeSession
-    if (data.activeSession) {
-      const session = data.activeSession
+    // Handle optional active_session
+    if (data.active_session) {
+      const session = data.active_session
       const book = session.book
 
       // Check required fields
@@ -329,7 +348,7 @@ async function handleCreateClub(req, supabaseClient) {
           author: book.author,
           edition: book.edition || null,
           year: book.year || null,
-          ISBN: book.ISBN || null
+          isbn: book.isbn || null
         })
         .select()
 
@@ -351,8 +370,7 @@ async function handleCreateClub(req, supabaseClient) {
           id: session.id,
           club_id: data.id,
           book_id: bookData[0].id,
-          duedate: session.dueDate || null,
-          defaultchannel: session.defaultChannel || null
+          due_date: session.due_date || null
         })
 
       if (sessionError) {
@@ -386,6 +404,35 @@ async function handleCreateClub(req, supabaseClient) {
           if (discussionError) {
             console.error(`Error adding discussion: ${discussionError.message}`)
           }
+        }
+      }
+    }
+
+    // Handle optional shame_list - now directly connected to the club
+    if (data.shame_list && Array.isArray(data.shame_list) && data.shame_list.length > 0) {
+      for (const memberId of data.shame_list) {
+        // Verify member exists
+        const { data: memberExists, error: memberError } = await supabaseClient
+          .from("members")
+          .select("id")
+          .eq("id", memberId)
+          .single()
+
+        if (memberError || !memberExists) {
+          console.error(`Member ID ${memberId} not found for shame list`)
+          continue
+        }
+
+        // Add to shame list
+        const { error: shameError } = await supabaseClient
+          .from("shamelist")
+          .insert({
+            club_id: data.id,
+            member_id: memberId
+          })
+
+        if (shameError) {
+          console.error(`Error adding member ${memberId} to shame list: ${shameError.message}`)
         }
       }
     }
@@ -425,9 +472,8 @@ async function handleUpdateClub(req, supabaseClient) {
 
     // Build update object with only the fields that should be updated
     const updateData = {}
-    if (data.name !== undefined) {
-      updateData.name = data.name
-    }
+    if (data.name !== undefined) updateData.name = data.name
+    if (data.discord_channel !== undefined) updateData.discord_channel = data.discord_channel
 
     // If no fields to update
     if (Object.keys(updateData).length === 0) {
@@ -465,11 +511,100 @@ async function handleUpdateClub(req, supabaseClient) {
       )
     }
 
+    // Handle shame_list updates if provided
+    let shame_list_updated = false
+    if (data.shame_list !== undefined) {
+      if (!Array.isArray(data.shame_list)) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Shame list must be an array',
+            partial_success: true,
+            message: "Club was updated but shame list was not modified",
+            club: clubData[0]
+          }),
+          { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+
+      // Get current shame list
+      const { data: current_shame_list, error: get_shame_error } = await supabaseClient
+        .from("shamelist")
+        .select("member_id")
+        .eq("club_id", data.id)
+
+      if (get_shame_error) {
+        return new Response(
+          JSON.stringify({ 
+            error: get_shame_error.message,
+            partial_success: true,
+            message: "Club was updated but could not retrieve shame list",
+            club: clubData[0]
+          }),
+          { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        )
+      }
+
+      const current_member_ids = current_shame_list.map(item => item.member_id);
+      
+      // Members to add (in new list but not in current)
+      const members_to_add = data.shame_list.filter(id => !current_member_ids.includes(id));
+      
+      // Members to remove (in current but not in new list)
+      const members_to_remove = current_member_ids.filter(id => !data.shame_list.includes(id));
+
+      // Add new members to shame list
+      if (members_to_add.length > 0) {
+        for (const memberId of members_to_add) {
+          // Verify member exists
+          const { data: memberExists, error: memberError } = await supabaseClient
+            .from("members")
+            .select("id")
+            .eq("id", memberId)
+            .single()
+
+          if (memberError || !memberExists) {
+            console.error(`Member ID ${memberId} not found for shame list`)
+            continue
+          }
+
+          // Add to shame list
+          const { error: shameError } = await supabaseClient
+            .from("shamelist")
+            .insert({
+              club_id: data.id,
+              member_id: memberId
+            })
+
+          if (shameError) {
+            console.error(`Error adding member ${memberId} to shame list: ${shameError.message}`)
+          } else {
+            shame_list_updated = true
+          }
+        }
+      }
+
+      // Remove members from shame list
+      if (members_to_remove.length > 0) {
+        const { error: removeError } = await supabaseClient
+          .from("shamelist")
+          .delete()
+          .eq("club_id", data.id)
+          .in("member_id", members_to_remove)
+
+        if (removeError) {
+          console.error(`Error removing members from shame list: ${removeError.message}`)
+        } else if (members_to_remove.length > 0) {
+          shame_list_updated = true
+        }
+      }
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: "Club updated successfully",
-        club: clubData[0]
+        club: clubData[0],
+        shame_list_updated: shame_list_updated
       }),
       { headers: { 'Content-Type': 'application/json' } }
     )
@@ -536,20 +671,7 @@ async function handleDeleteClub(req, supabaseClient) {
         )
       }
 
-      // 2. Delete shame list entries
-      const { error: shameError } = await supabaseClient
-        .from("shamelist")
-        .delete()
-        .in("session_id", sessionIds)
-
-      if (shameError) {
-        return new Response(
-          JSON.stringify({ error: `Failed to delete shame list entries: ${shameError.message}` }),
-          { headers: { 'Content-Type': 'application/json' }, status: 500 }
-        )
-      }
-
-      // 3. Delete sessions
+      // 2. Delete sessions
       const { error: sessionError } = await supabaseClient
         .from("sessions")
         .delete()
@@ -561,6 +683,19 @@ async function handleDeleteClub(req, supabaseClient) {
           { headers: { 'Content-Type': 'application/json' }, status: 500 }
         )
       }
+    }
+
+    // 3. Delete shame list entries for this club
+    const { error: shame_list_error } = await supabaseClient
+      .from("shamelist")
+      .delete()
+      .eq("club_id", clubId)
+
+    if (shame_list_error) {
+      return new Response(
+        JSON.stringify({ error: `Failed to delete shame list entries: ${shame_list_error.message}` }),
+        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      )
     }
 
     // 4. Delete member club associations

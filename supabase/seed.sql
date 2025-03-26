@@ -3,19 +3,19 @@
 -- This file populates the local development database with sample data
 
 -- Insert sample book clubs
-INSERT INTO Clubs (id, name) VALUES
-('club-1', 'Freaks & Geeks'),
-('club-2', 'Blingers Pilingers'),
-('club-3', 'Trifecta');
+INSERT INTO Clubs (id, name, discord_channel) VALUES
+('club-1', 'Freaks & Geeks', 987654321098765432),
+('club-2', 'Blingers Pilingers', 876543210987654321),
+('club-3', 'Trifecta', 765432109876543210);
 
 -- Insert sample members
-INSERT INTO Members (id, name, points, numberOfBooksRead) VALUES
-(1, 'Alice Johnson', 120, 8),
-(2, 'Bob Smith', 95, 6),
-(3, 'Carol Williams', 150, 12),
-(4, 'David Brown', 60, 4),
-(5, 'Eva Martinez', 200, 15),
-(6, 'Frank Thomas', 75, 5);
+INSERT INTO Members (id, name, points, books_read) VALUES
+(1, 'Ivan Garza Bermea', 120, 8),
+(2, 'Monica M. Morales', 95, 6),
+(3, 'Marco Rivera', 150, 12),
+(4, 'Anacleto Longoria', 60, 4),
+(5, 'Joel Salinas', 200, 15),
+(6, 'Jorge Longoria', 75, 5);
 
 -- Connect members to clubs
 INSERT INTO MemberClubs (member_id, club_id) VALUES
@@ -40,13 +40,13 @@ INSERT INTO Books (id, title, author, edition, year, ISBN) VALUES
 (6, 'Our First Day With Her', 'Skye Garza Morales', 'Boxed Set', 2021, '978-0618640157');
 
 -- Insert sample reading sessions
-INSERT INTO Sessions (id, club_id, book_id, dueDate, defaultChannel) VALUES
-('session-1', 'club-1', 1, '2025-04-15', 987654321098765432),
-('session-2', 'club-2', 2, '2025-04-20', 876543210987654321),
-('session-3', 'club-3', 3, '2025-04-25', 765432109876543210),
-('session-4', 'club-1', 4, '2025-05-10', 987654321098765432),
-('session-5', 'club-2', 5, '2025-05-15', 876543210987654321),
-('session-6', 'club-3', 6, '2025-05-20', 765432109876543210);
+INSERT INTO Sessions (id, club_id, book_id, due_date) VALUES
+('session-1', 'club-1', 1, '2025-04-15'),
+('session-2', 'club-2', 2, '2025-04-20'),
+('session-3', 'club-3', 3, '2025-04-25'),
+('session-4', 'club-1', 4, '2025-05-10'),
+('session-5', 'club-2', 5, '2025-05-15'),
+('session-6', 'club-3', 6, '2025-05-20');
 
 -- Insert sample discussions
 INSERT INTO Discussions (id, session_id, title, date, location) VALUES
@@ -58,13 +58,13 @@ INSERT INTO Discussions (id, session_id, title, date, location) VALUES
 ('disc-6', 'session-6', 'The cutest thing to ever live!', '2025-05-20', 'Discord Voice Channel');
 
 -- Insert shame list (members who didn't complete readings)
-INSERT INTO ShameList (session_id, member_id) VALUES
-('session-1', 2),
-('session-2', 1),
-('session-3', 4),
-('session-4', 5),
-('session-5', 6),
-('session-6', 3);
+INSERT INTO ShameList (club_id, member_id) VALUES
+('club-1', 2),
+('club-2', 1),
+('club-3', 4),
+('club-1', 5),
+('club-2', 6),
+('club-3', 3);
 
 -- Reset the Books sequence to continue from our manually inserted IDs
 SELECT setval('books_id_seq', (SELECT MAX(id) FROM Books), true);

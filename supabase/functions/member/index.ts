@@ -1,4 +1,4 @@
-// supabase/functions/member/index.ts
+// supabase/functions/member/index.ts - Updated for new schema
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -85,7 +85,7 @@ async function handleGetMember(req, supabaseClient) {
     if (clubIds.length > 0) {
       const { data: clubsData, error: clubsError } = await supabaseClient
         .from("clubs")
-        .select("id, name")
+        .select("id, name, discord_channel")
         .in("id", clubIds)
 
       if (clubsError) {
@@ -98,10 +98,10 @@ async function handleGetMember(req, supabaseClient) {
       clubs = clubsData;
     }
 
-    // Get shame list entries for this member
+    // Get shame list entries for this member (now from club level)
     const { data: shameData, error: shameError } = await supabaseClient
       .from("shamelist")
-      .select("session_id")
+      .select("club_id")
       .eq("member_id", memberId)
 
     if (shameError) {
@@ -111,37 +111,24 @@ async function handleGetMember(req, supabaseClient) {
       )
     }
 
-    // Get session details for shame list
-    const shameSessionIds = shameData.map(s => s.session_id);
-    let shameSessions = [];
+    // Get club info for shame list
+    const shameClubIds = shameData.map(s => s.club_id);
+    let shameClubs = [];
     
-    if (shameSessionIds.length > 0) {
-      const { data: sessionsData, error: sessionsError } = await supabaseClient
-        .from("sessions")
-        .select(`
-          id,
-          duedate,
-          club_id,
-          books (
-            title,
-            author
-          )
-        `)
-        .in("id", shameSessionIds)
+    if (shameClubIds.length > 0) {
+      const { data: clubsData, error: clubsError } = await supabaseClient
+        .from("clubs")
+        .select("id, name, discord_channel")
+        .in("id", shameClubIds)
 
-      if (sessionsError) {
+      if (clubsError) {
         return new Response(
-          JSON.stringify({ error: sessionsError.message }),
+          JSON.stringify({ error: clubsError.message }),
           { headers: { 'Content-Type': 'application/json' }, status: 500 }
         )
       }
       
-      shameSessions = sessionsData.map(session => ({
-        id: session.id,
-        duedate: session.duedate,
-        club_id: session.club_id,
-        book: session.books
-      }));
+      shameClubs = clubsData;
     }
 
     // Return the member with associated data
@@ -150,9 +137,9 @@ async function handleGetMember(req, supabaseClient) {
         id: memberData.id,
         name: memberData.name,
         points: memberData.points,
-        numberofbooksread: memberData.numberofbooksread,
+        books_read: memberData.books_read,
         clubs: clubs,
-        shameSessions: shameSessions
+        shame_clubs: shameClubs
       }),
       { headers: { 'Content-Type': 'application/json' } }
     )
@@ -187,17 +174,37 @@ async function handleCreateMember(req, supabaseClient) {
       )
     }
 
-    // Check if member ID is provided, otherwise use an auto-incrementing ID
-    const memberId = data.id || undefined;
+    // Handle member ID generation if not provided
+    let memberId;
+    if (data.id) {
+      memberId = data.id;
+    } else {
+      // Get the highest existing ID and increment by 1
+      const { data: maxIdResult, error: idError } = await supabaseClient
+        .from("members")
+        .select("id")
+        .order("id", { ascending: false })
+        .limit(1);
+      
+      if (idError) {
+        return new Response(
+          JSON.stringify({ error: `Failed to generate ID: ${idError.message}` }),
+          { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        )
+      }
+      
+      // If no members exist yet, start with ID 1, otherwise increment the highest ID
+      memberId = maxIdResult && maxIdResult.length > 0 ? maxIdResult[0].id + 1 : 1;
+    }
 
-    // Insert member data
+    // Insert member data with the generated or provided ID
     const { data: memberData, error: memberError } = await supabaseClient
       .from("members")
       .insert({
         id: memberId,
         name: data.name,
         points: data.points || 0,
-        numberofbooksread: data.numberOfBooksRead || 0
+        books_read: data.books_read || 0
       })
       .select()
 
@@ -223,7 +230,7 @@ async function handleCreateMember(req, supabaseClient) {
         return new Response(
           JSON.stringify({ 
             error: clubsError.message,
-            partialSuccess: true,
+            partial_success: true,
             message: "Member created but failed to verify clubs",
             member: memberData[0]
           }),
@@ -239,7 +246,7 @@ async function handleCreateMember(req, supabaseClient) {
         return new Response(
           JSON.stringify({ 
             error: `The following clubs do not exist: ${nonExistentClubs.join(', ')}`,
-            partialSuccess: true,
+            partial_success: true,
             message: "Member created but not associated with all clubs",
             member: memberData[0]
           }),
@@ -261,7 +268,7 @@ async function handleCreateMember(req, supabaseClient) {
         return new Response(
           JSON.stringify({ 
             error: associationError.message,
-            partialSuccess: true,
+            partial_success: true,
             message: "Member created but failed to associate with clubs",
             member: memberData[0]
           }),
@@ -324,7 +331,7 @@ async function handleUpdateMember(req, supabaseClient) {
     const updateData = {}
     if (data.name !== undefined) updateData.name = data.name
     if (data.points !== undefined) updateData.points = data.points
-    if (data.numberOfBooksRead !== undefined) updateData.numberOfBooksRead = data.numberOfBooksRead
+    if (data.books_read !== undefined) updateData.books_read = data.books_read
 
     let updatedMember = { id: data.id };
     let clubsUpdated = false;
@@ -353,7 +360,7 @@ async function handleUpdateMember(req, supabaseClient) {
         return new Response(
           JSON.stringify({ 
             error: 'Clubs must be an array',
-            partialSuccess: Object.keys(updateData).length > 0,
+            partial_success: Object.keys(updateData).length > 0,
             message: "Some member fields updated but clubs not modified",
             member: updatedMember
           }),
@@ -371,7 +378,7 @@ async function handleUpdateMember(req, supabaseClient) {
         return new Response(
           JSON.stringify({ 
             error: getError.message,
-            partialSuccess: Object.keys(updateData).length > 0,
+            partial_success: Object.keys(updateData).length > 0,
             message: "Member updated but failed to retrieve existing club associations",
             member: updatedMember
           }),
@@ -399,7 +406,7 @@ async function handleUpdateMember(req, supabaseClient) {
           return new Response(
             JSON.stringify({ 
               error: verifyError.message,
-              partialSuccess: Object.keys(updateData).length > 0,
+              partial_success: Object.keys(updateData).length > 0,
               message: "Member updated but failed to verify club IDs",
               member: updatedMember
             }),
@@ -414,7 +421,7 @@ async function handleUpdateMember(req, supabaseClient) {
           return new Response(
             JSON.stringify({ 
               error: `The following clubs do not exist: ${invalidClubs.join(', ')}`,
-              partialSuccess: Object.keys(updateData).length > 0,
+              partial_success: Object.keys(updateData).length > 0,
               message: "Member updated but clubs not completely modified",
               member: updatedMember
             }),
@@ -437,7 +444,7 @@ async function handleUpdateMember(req, supabaseClient) {
             return new Response(
               JSON.stringify({ 
                 error: addError.message,
-                partialSuccess: Object.keys(updateData).length > 0,
+                partial_success: Object.keys(updateData).length > 0,
                 message: "Member updated but failed to add new club associations",
                 member: updatedMember
               }),
@@ -461,7 +468,7 @@ async function handleUpdateMember(req, supabaseClient) {
           return new Response(
             JSON.stringify({ 
               error: removeError.message,
-              partialSuccess: Object.keys(updateData).length > 0 || clubsToAdd.length > 0,
+              partial_success: Object.keys(updateData).length > 0 || clubsToAdd.length > 0,
               message: "Member updated but failed to remove some club associations",
               member: updatedMember
             }),
@@ -486,7 +493,7 @@ async function handleUpdateMember(req, supabaseClient) {
         success: true, 
         message: "Member updated successfully",
         member: updatedMember,
-        clubsUpdated: clubsUpdated
+        clubs_updated: clubsUpdated
       }),
       { headers: { 'Content-Type': 'application/json' } }
     )
@@ -529,7 +536,7 @@ async function handleDeleteMember(req, supabaseClient) {
       )
     }
 
-    // Delete from shame list first
+    // Delete from shame list first (now club-based)
     const { error: shameError } = await supabaseClient
       .from("shamelist")
       .delete()
