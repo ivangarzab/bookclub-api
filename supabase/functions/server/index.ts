@@ -58,16 +58,20 @@ async function handleGetServer(req, supabaseClient) {
         )
       }
 
-      // Get clubs for each server
+      // Get clubs for each server (using string conversion to prevent precision loss)
       const serversWithClubs = await Promise.all(
         serversData.map(async (server) => {
-          const { data: clubsData } = await supabaseClient
+          const { data: clubsData, error: clubsError } = await supabaseClient
             .from("clubs")
             .select("id, name, discord_channel")
-            .eq("server_id", server.id)
+            .eq("server_id", String(server.id))
+
+          if (clubsError) {
+            console.error(`Error fetching clubs for server ${server.id}:`, clubsError);
+          }
 
           return {
-            id: server.id,
+            id: String(server.id), // Ensure ID is returned as string
             name: server.name,
             clubs: clubsData || []
           }
@@ -137,7 +141,7 @@ async function handleGetServer(req, supabaseClient) {
     // Return the server with associated data
     return new Response(
       JSON.stringify({
-        id: serverData.id,
+        id: String(serverData.id), // Ensure ID is returned as string
         name: serverData.name,
         clubs: clubsWithDetails
       }),
