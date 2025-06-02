@@ -48,7 +48,7 @@ async function handleGetServer(req, supabaseClient) {
       // If no ID provided, return all servers
       const { data: serversData, error: serversError } = await supabaseClient
         .from("servers")
-        .select("*")
+        .select("id::text, name") // Cast ID to text to preserve precision
         .order('name', { ascending: true })
 
       if (serversError) {
@@ -63,15 +63,15 @@ async function handleGetServer(req, supabaseClient) {
         serversData.map(async (server) => {
           const { data: clubsData, error: clubsError } = await supabaseClient
             .from("clubs")
-            .select("id, name, discord_channel")
-            .eq("server_id", String(server.id))
+            .select("id, name, discord_channel::text") // Cast discord_channel to text too
+            .eq("server_id", server.id) // server.id is now already a string
 
           if (clubsError) {
             console.error(`Error fetching clubs for server ${server.id}:`, clubsError);
           }
 
           return {
-            id: String(server.id), // Ensure ID is returned as string
+            id: server.id, // Already a string now
             name: server.name,
             clubs: clubsData || []
           }
@@ -87,7 +87,7 @@ async function handleGetServer(req, supabaseClient) {
     // Get specific server data
     const { data: serverData, error: serverError } = await supabaseClient
       .from("servers")
-      .select("*")
+      .select("id::text, name") // Cast ID to text to preserve precision
       .eq("id", serverId)
       .single()
 
@@ -101,7 +101,7 @@ async function handleGetServer(req, supabaseClient) {
     // Get clubs for this server
     const { data: clubsData, error: clubsError } = await supabaseClient
       .from("clubs")
-      .select("*")
+      .select("id, name, discord_channel::text") // Cast discord_channel to text
       .eq("server_id", serverId)
 
     if (clubsError) {
@@ -141,7 +141,7 @@ async function handleGetServer(req, supabaseClient) {
     // Return the server with associated data
     return new Response(
       JSON.stringify({
-        id: String(serverData.id), // Ensure ID is returned as string
+        id: serverData.id, // Already a string now
         name: serverData.name,
         clubs: clubsWithDetails
       }),
