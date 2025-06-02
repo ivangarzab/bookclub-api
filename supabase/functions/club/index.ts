@@ -36,6 +36,23 @@ serve(async (req) => {
 })
 
 /**
+ * Helper function to validate server exists
+ */
+async function validateServer(supabaseClient, serverId) {
+  const { data: serverData, error: serverError } = await supabaseClient
+    .from("servers")
+    .select("id")
+    .eq("id", serverId)
+    .single()
+
+  if (serverError || !serverData) {
+    return { valid: false, error: 'Server not found or not registered' };
+  }
+  
+  return { valid: true };
+}
+
+/**
  * Handles GET requests to retrieve club details
  */
 async function handleGetClub(req, supabaseClient) {
@@ -43,6 +60,7 @@ async function handleGetClub(req, supabaseClient) {
     // Get URL parameters
     const url = new URL(req.url);
     const clubId = url.searchParams.get('id');
+    const serverId = url.searchParams.get('server_id');
 
     if (!clubId) {
       return new Response(
@@ -51,16 +69,33 @@ async function handleGetClub(req, supabaseClient) {
       );
     }
 
-    // Get club data
+    if (!serverId) {
+      return new Response(
+        JSON.stringify({ error: 'Server ID is required' }),
+        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    // Validate server exists
+    const serverValidation = await validateServer(supabaseClient, serverId);
+    if (!serverValidation.valid) {
+      return new Response(
+        JSON.stringify({ error: serverValidation.error }),
+        { headers: { 'Content-Type': 'application/json' }, status: 404 }
+      );
+    }
+
+    // Get club data with server verification
     const { data: clubData, error: clubError } = await supabaseClient
       .from("clubs")
       .select("*")
       .eq("id", clubId)
+      .eq("server_id", serverId)
       .single()
 
     if (clubError || !clubData) {
       return new Response(
-        JSON.stringify({ error: clubError?.message || 'Club not found' }),
+        JSON.stringify({ error: clubError?.message || 'Club not found in this server' }),
         { headers: { 'Content-Type': 'application/json' }, status: 404 }
       )
     }
@@ -85,6 +120,7 @@ async function handleGetClub(req, supabaseClient) {
           id: clubData.id,
           name: clubData.name,
           discord_channel: clubData.discord_channel,
+          server_id: clubData.server_id,
           members: [],
           active_session: null,
           past_sessions: [],
@@ -174,12 +210,6 @@ async function handleGetClub(req, supabaseClient) {
         )
       }
 
-      // Get shame list - now directly from the club, not from session
-      const { data: shame_list_data } = await supabaseClient
-        .from("shamelist")
-        .select("member_id")
-        .eq("club_id", clubId)
-
       active_session = {
         id: session.id,
         club_id: session.club_id,
@@ -211,7 +241,7 @@ async function handleGetClub(req, supabaseClient) {
 
     const past_sessions = past_sessions_data || []
 
-    // Get shame list for the club
+    // Get shame list for the club (cleaned up - removed duplicate code)
     const { data: shame_list_data, error: shame_list_error } = await supabaseClient
       .from("shamelist")
       .select("member_id")
@@ -226,27 +256,13 @@ async function handleGetClub(req, supabaseClient) {
 
     const shame_list = shame_list_data?.map(item => item.member_id) || []
 
-    // Get shame list for the club
-    const { data: shameListData, error: shameListError } = await supabaseClient
-      .from("shamelist")
-      .select("member_id")
-      .eq("club_id", clubId)
-
-    if (shameListError) {
-      return new Response(
-        JSON.stringify({ error: shameListError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
-      )
-    }
-
-    const shameList = shameListData?.map(item => item.member_id) || []
-
     // Return the full reconstructed club data
     return new Response(
       JSON.stringify({
         id: clubData.id,
         name: clubData.name,
         discord_channel: clubData.discord_channel,
+        server_id: clubData.server_id,
         members: membersWithClubs,
         active_session: active_session,
         past_sessions: past_sessions,
@@ -278,18 +294,35 @@ async function handleCreateClub(req, supabaseClient) {
       )
     }
 
+    if (!data.server_id) {
+      return new Response(
+        JSON.stringify({ error: 'Server ID is required' }),
+        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    // Validate server exists
+    const serverValidation = await validateServer(supabaseClient, data.server_id);
+    if (!serverValidation.valid) {
+      return new Response(
+        JSON.stringify({ error: serverValidation.error }),
+        { headers: { 'Content-Type': 'application/json' }, status: 404 }
+      );
+    }
+
     // Generate a unique ID if not provided
     if (!data.id) {
       data.id = crypto.randomUUID()
     }
 
-    // Insert club data
+    // Insert club data with server_id
     const { data: clubData, error: clubError } = await supabaseClient
       .from("clubs")
       .insert({
         id: data.id,
         name: data.name,
-        discord_channel: data.discord_channel || null
+        discord_channel: data.discord_channel || null,
+        server_id: data.server_id
       })
       .select()
 
@@ -485,6 +518,22 @@ async function handleUpdateClub(req, supabaseClient) {
       )
     }
 
+    if (!data.server_id) {
+      return new Response(
+        JSON.stringify({ error: 'Server ID is required' }),
+        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    // Validate server exists
+    const serverValidation = await validateServer(supabaseClient, data.server_id);
+    if (!serverValidation.valid) {
+      return new Response(
+        JSON.stringify({ error: serverValidation.error }),
+        { headers: { 'Content-Type': 'application/json' }, status: 404 }
+      );
+    }
+
     // Build update object with only the fields that should be updated
     const updateData = {}
     if (data.name !== undefined) updateData.name = data.name
@@ -498,16 +547,17 @@ async function handleUpdateClub(req, supabaseClient) {
       )
     }
 
-    // Check if club exists
+    // Check if club exists in this server
     const { data: existingClub, error: checkError } = await supabaseClient
       .from("clubs")
       .select("id")
       .eq("id", data.id)
+      .eq("server_id", data.server_id)
       .single()
 
     if (checkError || !existingClub) {
       return new Response(
-        JSON.stringify({ error: 'Club not found' }),
+        JSON.stringify({ error: 'Club not found in this server' }),
         { headers: { 'Content-Type': 'application/json' }, status: 404 }
       )
     }
@@ -517,6 +567,7 @@ async function handleUpdateClub(req, supabaseClient) {
       .from("clubs")
       .update(updateData)
       .eq("id", data.id)
+      .eq("server_id", data.server_id)
       .select()
 
     if (updateError) {
@@ -640,6 +691,7 @@ async function handleDeleteClub(req, supabaseClient) {
     // Get URL parameters
     const url = new URL(req.url);
     const clubId = url.searchParams.get('id');
+    const serverId = url.searchParams.get('server_id');
 
     if (!clubId) {
       return new Response(
@@ -648,16 +700,33 @@ async function handleDeleteClub(req, supabaseClient) {
       )
     }
 
-    // Check if club exists
+    if (!serverId) {
+      return new Response(
+        JSON.stringify({ error: 'Server ID is required' }),
+        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    // Validate server exists
+    const serverValidation = await validateServer(supabaseClient, serverId);
+    if (!serverValidation.valid) {
+      return new Response(
+        JSON.stringify({ error: serverValidation.error }),
+        { headers: { 'Content-Type': 'application/json' }, status: 404 }
+      );
+    }
+
+    // Check if club exists in this server
     const { data: existingClub, error: checkError } = await supabaseClient
       .from("clubs")
       .select("id")
       .eq("id", clubId)
+      .eq("server_id", serverId)
       .single()
 
     if (checkError || !existingClub) {
       return new Response(
-        JSON.stringify({ error: 'Club not found' }),
+        JSON.stringify({ error: 'Club not found in this server' }),
         { headers: { 'Content-Type': 'application/json' }, status: 404 }
       )
     }
@@ -731,6 +800,7 @@ async function handleDeleteClub(req, supabaseClient) {
       .from("clubs")
       .delete()
       .eq("id", clubId)
+      .eq("server_id", serverId)
 
     if (deleteError) {
       return new Response(
