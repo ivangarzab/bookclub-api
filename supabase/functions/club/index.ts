@@ -61,7 +61,48 @@ async function handleGetClub(req, supabaseClient) {
     const url = new URL(req.url);
     const clubId = url.searchParams.get('id');
     const serverId = url.searchParams.get('server_id');
+    const discordChannel = url.searchParams.get('discord_channel');
 
+    // Search by discord_channel
+    if (discordChannel) {
+      if (!serverId) {
+        return new Response(
+          JSON.stringify({ error: 'Server ID is required when searching by discord_channel' }),
+          { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+
+      // Validate server exists
+      const serverValidation = await validateServer(supabaseClient, serverId);
+      if (!serverValidation.valid) {
+        return new Response(
+          JSON.stringify({ error: serverValidation.error }),
+          { headers: { 'Content-Type': 'application/json' }, status: 404 }
+        );
+      }
+
+      // Find club by discord_channel and server_id
+      const { data: clubData, error: clubError } = await supabaseClient
+        .from("clubs")
+        .select("*")
+        .eq("discord_channel", discordChannel)
+        .eq("server_id", serverId)
+        .single()
+
+      if (clubError || !clubData) {
+        return new Response(
+          JSON.stringify({ 
+            error: clubError?.message || 'Club not found with this discord channel in the specified server' 
+          }),
+          { headers: { 'Content-Type': 'application/json' }, status: 404 }
+        )
+      }
+
+      // Use the found club's ID to get full club details
+      return await getFullClubDetails(supabaseClient, clubData.id, serverId);
+    }
+
+    // Original logic for ID-based search
     if (!clubId) {
       return new Response(
         JSON.stringify({ error: 'Club ID is required' }),
@@ -85,197 +126,205 @@ async function handleGetClub(req, supabaseClient) {
       );
     }
 
-    // Get club data with server verification
-    const { data: clubData, error: clubError } = await supabaseClient
-      .from("clubs")
-      .select("*")
-      .eq("id", clubId)
-      .eq("server_id", serverId)
-      .single()
-
-    if (clubError || !clubData) {
-      return new Response(
-        JSON.stringify({ error: clubError?.message || 'Club not found in this server' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 404 }
-      )
-    }
-
-    // Get all members associated with this club
-    const { data: memberClubsData, error: memberClubsError } = await supabaseClient
-      .from("memberclubs")
-      .select("member_id")
-      .eq("club_id", clubId)
-
-    if (memberClubsError) {
-      return new Response(
-        JSON.stringify({ error: memberClubsError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
-      )
-    }
-
-    // If no members, return the club with empty members array
-    if (!memberClubsData.length) {
-      return new Response(
-        JSON.stringify({
-          id: clubData.id,
-          name: clubData.name,
-          discord_channel: clubData.discord_channel,
-          server_id: clubData.server_id,
-          members: [],
-          active_session: null,
-          past_sessions: [],
-          shame_list: []
-        }),
-        { headers: { 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Extract member IDs
-    const memberIds = memberClubsData.map(mc => mc.member_id)
-
-    // Get member details
-    const { data: membersData, error: membersError } = await supabaseClient
-      .from("members")
-      .select("*")
-      .in("id", memberIds)
-
-    if (membersError) {
-      return new Response(
-        JSON.stringify({ error: membersError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
-      )
-    }
-
-    // Get club memberships for each member
-    const membersWithClubs = await Promise.all(
-      membersData.map(async (member) => {
-        const { data: memberClubs } = await supabaseClient
-          .from("memberclubs")
-          .select("club_id")
-          .eq("member_id", member.id)
-
-        return {
-          id: member.id,
-          name: member.name,
-          points: member.points,
-          books_read: member.books_read,
-          clubs: memberClubs?.map(mc => mc.club_id) || []
-        }
-      })
-    )
-
-    // Get active session for this club
-    const { data: sessionsData, error: sessionsError } = await supabaseClient
-      .from("sessions")
-      .select("*")
-      .eq("club_id", clubId)
-      .order('due_date', { ascending: false })
-      .limit(1)
-
-    if (sessionsError) {
-      return new Response(
-        JSON.stringify({ error: sessionsError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
-      )
-    }
-
-    let active_session = null
-    if (sessionsData.length > 0) {
-      const session = sessionsData[0]
-
-      // Get book for this session
-      const { data: bookData, error: bookError } = await supabaseClient
-        .from("books")
-        .select("*")
-        .eq("id", session.book_id)
-        .single()
-
-      if (bookError) {
-        return new Response(
-          JSON.stringify({ error: bookError.message }),
-          { headers: { 'Content-Type': 'application/json' }, status: 500 }
-        )
-      }
-
-      // Get discussions for this session
-      const { data: discussionsData, error: discussionsError } = await supabaseClient
-        .from("discussions")
-        .select("*")
-        .eq("session_id", session.id)
-
-      if (discussionsError) {
-        return new Response(
-          JSON.stringify({ error: discussionsError.message }),
-          { headers: { 'Content-Type': 'application/json' }, status: 500 }
-        )
-      }
-
-      active_session = {
-        id: session.id,
-        club_id: session.club_id,
-        book: {
-          title: bookData.title,
-          author: bookData.author,
-          edition: bookData.edition,
-          year: bookData.year,
-          isbn: bookData.isbn
-        },
-        due_date: session.due_date,
-        discussions: discussionsData?.map(discussion => ({
-          id: discussion.id,
-          session_id: discussion.session_id,
-          title: discussion.title,
-          date: discussion.date,
-          location: discussion.location
-        })) || []
-      }
-    }
-
-    // Get past sessions (skip the active one if it exists)
-    const { data: past_sessions_data } = await supabaseClient
-      .from("sessions")
-      .select("id, due_date")
-      .eq("club_id", clubId)
-      .order('due_date', { ascending: false })
-      .range(active_session ? 1 : 0, 10)
-
-    const past_sessions = past_sessions_data || []
-
-    // Get shame list for the club (cleaned up - removed duplicate code)
-    const { data: shame_list_data, error: shame_list_error } = await supabaseClient
-      .from("shamelist")
-      .select("member_id")
-      .eq("club_id", clubId)
-
-    if (shame_list_error) {
-      return new Response(
-        JSON.stringify({ error: shame_list_error.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
-      )
-    }
-
-    const shame_list = shame_list_data?.map(item => item.member_id) || []
-
-    // Return the full reconstructed club data
-    return new Response(
-      JSON.stringify({
-        id: clubData.id,
-        name: clubData.name,
-        discord_channel: clubData.discord_channel,
-        server_id: clubData.server_id,
-        members: membersWithClubs,
-        active_session: active_session,
-        past_sessions: past_sessions,
-        shame_list: shame_list
-      }),
-      { headers: { 'Content-Type': 'application/json' } }
-    )
+    return await getFullClubDetails(supabaseClient, clubId, serverId);
+    
   } catch (error) {
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { 'Content-Type': 'application/json' }, status: 500 }
     )
   }
+}
+
+/**
+ * Helper function to get full club details by club ID and server ID
+ */
+async function getFullClubDetails(supabaseClient, clubId, serverId) {
+  // Get club data with server verification
+  const { data: clubData, error: clubError } = await supabaseClient
+    .from("clubs")
+    .select("*")
+    .eq("id", clubId)
+    .eq("server_id", serverId)
+    .single()
+
+  if (clubError || !clubData) {
+    return new Response(
+      JSON.stringify({ error: clubError?.message || 'Club not found in this server' }),
+      { headers: { 'Content-Type': 'application/json' }, status: 404 }
+    )
+  }
+
+  // Get all members associated with this club
+  const { data: memberClubsData, error: memberClubsError } = await supabaseClient
+    .from("memberclubs")
+    .select("member_id")
+    .eq("club_id", clubId)
+
+  if (memberClubsError) {
+    return new Response(
+      JSON.stringify({ error: memberClubsError.message }),
+      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+    )
+  }
+
+  // If no members, return the club with empty members array
+  if (!memberClubsData.length) {
+    return new Response(
+      JSON.stringify({
+        id: clubData.id,
+        name: clubData.name,
+        discord_channel: clubData.discord_channel,
+        server_id: clubData.server_id,
+        members: [],
+        active_session: null,
+        past_sessions: [],
+        shame_list: []
+      }),
+      { headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+
+  // Extract member IDs
+  const memberIds = memberClubsData.map(mc => mc.member_id)
+
+  // Get member details
+  const { data: membersData, error: membersError } = await supabaseClient
+    .from("members")
+    .select("*")
+    .in("id", memberIds)
+
+  if (membersError) {
+    return new Response(
+      JSON.stringify({ error: membersError.message }),
+      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+    )
+  }
+
+  // Get club memberships for each member
+  const membersWithClubs = await Promise.all(
+    membersData.map(async (member) => {
+      const { data: memberClubs } = await supabaseClient
+        .from("memberclubs")
+        .select("club_id")
+        .eq("member_id", member.id)
+
+      return {
+        id: member.id,
+        name: member.name,
+        points: member.points,
+        books_read: member.books_read,
+        clubs: memberClubs?.map(mc => mc.club_id) || []
+      }
+    })
+  )
+
+  // Get active session for this club
+  const { data: sessionsData, error: sessionsError } = await supabaseClient
+    .from("sessions")
+    .select("*")
+    .eq("club_id", clubId)
+    .order('due_date', { ascending: false })
+    .limit(1)
+
+  if (sessionsError) {
+    return new Response(
+      JSON.stringify({ error: sessionsError.message }),
+      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+    )
+  }
+
+  let active_session = null
+  if (sessionsData.length > 0) {
+    const session = sessionsData[0]
+
+    // Get book for this session
+    const { data: bookData, error: bookError } = await supabaseClient
+      .from("books")
+      .select("*")
+      .eq("id", session.book_id)
+      .single()
+
+    if (bookError) {
+      return new Response(
+        JSON.stringify({ error: bookError.message }),
+        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      )
+    }
+
+    // Get discussions for this session
+    const { data: discussionsData, error: discussionsError } = await supabaseClient
+      .from("discussions")
+      .select("*")
+      .eq("session_id", session.id)
+
+    if (discussionsError) {
+      return new Response(
+        JSON.stringify({ error: discussionsError.message }),
+        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      )
+    }
+
+    active_session = {
+      id: session.id,
+      club_id: session.club_id,
+      book: {
+        title: bookData.title,
+        author: bookData.author,
+        edition: bookData.edition,
+        year: bookData.year,
+        isbn: bookData.isbn
+      },
+      due_date: session.due_date,
+      discussions: discussionsData?.map(discussion => ({
+        id: discussion.id,
+        session_id: discussion.session_id,
+        title: discussion.title,
+        date: discussion.date,
+        location: discussion.location
+      })) || []
+    }
+  }
+
+  // Get past sessions (skip the active one if it exists)
+  const { data: past_sessions_data } = await supabaseClient
+    .from("sessions")
+    .select("id, due_date")
+    .eq("club_id", clubId)
+    .order('due_date', { ascending: false })
+    .range(active_session ? 1 : 0, 10)
+
+  const past_sessions = past_sessions_data || []
+
+  // Get shame list for the club
+  const { data: shame_list_data, error: shame_list_error } = await supabaseClient
+    .from("shamelist")
+    .select("member_id")
+    .eq("club_id", clubId)
+
+  if (shame_list_error) {
+    return new Response(
+      JSON.stringify({ error: shame_list_error.message }),
+      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+    )
+  }
+
+  const shame_list = shame_list_data?.map(item => item.member_id) || []
+
+  // Return the full reconstructed club data
+  return new Response(
+    JSON.stringify({
+      id: clubData.id,
+      name: clubData.name,
+      discord_channel: clubData.discord_channel,
+      server_id: clubData.server_id,
+      members: membersWithClubs,
+      active_session: active_session,
+      past_sessions: past_sessions,
+      shame_list: shame_list
+    }),
+    { headers: { 'Content-Type': 'application/json' } }
+  )
 }
 
 /**
