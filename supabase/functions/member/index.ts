@@ -1,9 +1,11 @@
-// supabase/functions/member/index.ts - Updated for new schema
+// supabase/functions/member/index.ts - Updated for new schema with debug logs
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 serve(async (req) => {
   try {
+    console.log(`[MEMBER] === New ${req.method} request received ===`);
+    
     // Create a Supabase client with the Auth context of the function
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -22,12 +24,14 @@ serve(async (req) => {
       case 'DELETE':
         return await handleDeleteMember(req, supabaseClient);
       default:
+        console.log(`[MEMBER] Method not allowed: ${req.method}`);
         return new Response(
           JSON.stringify({ error: 'Method not allowed' }),
           { headers: { 'Content-Type': 'application/json' }, status: 405 }
         );
     }
   } catch (error) {
+    console.log(`[MEMBER] FATAL ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { 'Content-Type': 'application/json' }, status: 500 }
@@ -40,11 +44,16 @@ serve(async (req) => {
  */
 async function handleGetMember(req, supabaseClient) {
   try {
+    console.log(`[MEMBER-GET] Starting handleGetMember`);
+    
     // Get URL parameters
     const url = new URL(req.url);
     const memberId = url.searchParams.get('id');
 
+    console.log(`[MEMBER-GET] Request parameters:`, { memberId });
+
     if (!memberId) {
+      console.log(`[MEMBER-GET] Missing member ID - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Member ID is required' }),
         { headers: { 'Content-Type': 'application/json' }, status: 400 }
@@ -52,13 +61,26 @@ async function handleGetMember(req, supabaseClient) {
     }
 
     // Get member data
+    console.log(`[MEMBER-GET] Querying member: "${memberId}"`);
     const { data: memberData, error: memberError } = await supabaseClient
       .from("members")
       .select("*")
       .eq("id", memberId)
       .single()
 
+    console.log(`[MEMBER-GET] Member query result:`, { 
+      found: !!memberData, 
+      error: memberError?.message,
+      member: memberData ? { 
+        id: memberData.id, 
+        name: memberData.name, 
+        points: memberData.points,
+        books_read: memberData.books_read 
+      } : null
+    });
+
     if (memberError || !memberData) {
+      console.log(`[MEMBER-GET] Member not found - returning 404`);
       return new Response(
         JSON.stringify({ error: memberError?.message || 'Member not found' }),
         { headers: { 'Content-Type': 'application/json' }, status: 404 }
@@ -66,12 +88,20 @@ async function handleGetMember(req, supabaseClient) {
     }
 
     // Get clubs this member belongs to
+    console.log(`[MEMBER-GET] Getting club associations for member: "${memberId}"`);
     const { data: memberClubs, error: memberClubsError } = await supabaseClient
       .from("memberclubs")
       .select("club_id")
       .eq("member_id", memberId)
 
+    console.log(`[MEMBER-GET] Member clubs query result:`, { 
+      count: memberClubs?.length || 0, 
+      error: memberClubsError?.message,
+      club_ids: memberClubs?.map(mc => mc.club_id) || []
+    });
+
     if (memberClubsError) {
+      console.log(`[MEMBER-GET] Member clubs query failed - returning 500`);
       return new Response(
         JSON.stringify({ error: memberClubsError.message }),
         { headers: { 'Content-Type': 'application/json' }, status: 500 }
@@ -83,12 +113,21 @@ async function handleGetMember(req, supabaseClient) {
     let clubs = [];
     
     if (clubIds.length > 0) {
+      console.log(`[MEMBER-GET] Getting details for ${clubIds.length} clubs:`, clubIds);
+      
       const { data: clubsData, error: clubsError } = await supabaseClient
         .from("clubs")
         .select("id, name, discord_channel")
         .in("id", clubIds)
 
+      console.log(`[MEMBER-GET] Clubs details query result:`, { 
+        count: clubsData?.length || 0, 
+        error: clubsError?.message,
+        clubs: clubsData?.map(c => ({ id: c.id, name: c.name })) || []
+      });
+
       if (clubsError) {
+        console.log(`[MEMBER-GET] Clubs details query failed - returning 500`);
         return new Response(
           JSON.stringify({ error: clubsError.message }),
           { headers: { 'Content-Type': 'application/json' }, status: 500 }
@@ -96,15 +135,25 @@ async function handleGetMember(req, supabaseClient) {
       }
       
       clubs = clubsData;
+    } else {
+      console.log(`[MEMBER-GET] Member belongs to no clubs`);
     }
 
     // Get shame list entries for this member (now from club level)
+    console.log(`[MEMBER-GET] Getting shame list entries for member: "${memberId}"`);
     const { data: shameData, error: shameError } = await supabaseClient
       .from("shamelist")
       .select("club_id")
       .eq("member_id", memberId)
 
+    console.log(`[MEMBER-GET] Shame list query result:`, { 
+      count: shameData?.length || 0, 
+      error: shameError?.message,
+      shame_club_ids: shameData?.map(s => s.club_id) || []
+    });
+
     if (shameError) {
+      console.log(`[MEMBER-GET] Shame list query failed - returning 500`);
       return new Response(
         JSON.stringify({ error: shameError.message }),
         { headers: { 'Content-Type': 'application/json' }, status: 500 }
@@ -116,12 +165,21 @@ async function handleGetMember(req, supabaseClient) {
     let shameClubs = [];
     
     if (shameClubIds.length > 0) {
+      console.log(`[MEMBER-GET] Getting details for ${shameClubIds.length} shame clubs:`, shameClubIds);
+      
       const { data: clubsData, error: clubsError } = await supabaseClient
         .from("clubs")
         .select("id, name, discord_channel")
         .in("id", shameClubIds)
 
+      console.log(`[MEMBER-GET] Shame clubs details query result:`, { 
+        count: clubsData?.length || 0, 
+        error: clubsError?.message,
+        clubs: clubsData?.map(c => ({ id: c.id, name: c.name })) || []
+      });
+
       if (clubsError) {
+        console.log(`[MEMBER-GET] Shame clubs details query failed - returning 500`);
         return new Response(
           JSON.stringify({ error: clubsError.message }),
           { headers: { 'Content-Type': 'application/json' }, status: 500 }
@@ -129,21 +187,35 @@ async function handleGetMember(req, supabaseClient) {
       }
       
       shameClubs = clubsData;
+    } else {
+      console.log(`[MEMBER-GET] Member is not on any shame lists`);
     }
+
+    const responseData = {
+      id: memberData.id,
+      name: memberData.name,
+      points: memberData.points,
+      books_read: memberData.books_read,
+      clubs: clubs,
+      shame_clubs: shameClubs
+    };
+
+    console.log(`[MEMBER-GET] Member details completed - returning data:`, {
+      member_id: responseData.id,
+      member_name: responseData.name,
+      clubs_count: responseData.clubs.length,
+      shame_clubs_count: responseData.shame_clubs.length,
+      points: responseData.points,
+      books_read: responseData.books_read
+    });
 
     // Return the member with associated data
     return new Response(
-      JSON.stringify({
-        id: memberData.id,
-        name: memberData.name,
-        points: memberData.points,
-        books_read: memberData.books_read,
-        clubs: clubs,
-        shame_clubs: shameClubs
-      }),
+      JSON.stringify(responseData),
       { headers: { 'Content-Type': 'application/json' } }
     )
   } catch (error) {
+    console.log(`[MEMBER-GET] ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { 'Content-Type': 'application/json' }, status: 500 }
@@ -156,11 +228,15 @@ async function handleGetMember(req, supabaseClient) {
  */
 async function handleCreateMember(req, supabaseClient) {
   try {
+    console.log(`[MEMBER-POST] Starting handleCreateMember`);
+    
     // Get the request body
     const data = await req.json()
+    console.log(`[MEMBER-POST] Request body:`, JSON.stringify(data, null, 2));
 
     // Validate required fields
     if (!data.name) {
+      console.log(`[MEMBER-POST] Missing member name - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Member name is required' }),
         { headers: { 'Content-Type': 'application/json' }, status: 400 }
@@ -168,6 +244,7 @@ async function handleCreateMember(req, supabaseClient) {
     }
 
     if (data.clubs && (!Array.isArray(data.clubs) || data.clubs.length === 0)) {
+      console.log(`[MEMBER-POST] Invalid clubs field - returning 400`);
       return new Response(
         JSON.stringify({ error: 'The clubs field must be an array with at least one club ID' }),
         { headers: { 'Content-Type': 'application/json' }, status: 400 }
@@ -178,7 +255,10 @@ async function handleCreateMember(req, supabaseClient) {
     let memberId;
     if (data.id) {
       memberId = data.id;
+      console.log(`[MEMBER-POST] Using provided member ID: ${memberId}`);
     } else {
+      console.log(`[MEMBER-POST] Generating member ID - getting highest existing ID`);
+      
       // Get the highest existing ID and increment by 1
       const { data: maxIdResult, error: idError } = await supabaseClient
         .from("members")
@@ -186,7 +266,14 @@ async function handleCreateMember(req, supabaseClient) {
         .order("id", { ascending: false })
         .limit(1);
       
+      console.log(`[MEMBER-POST] Max ID query result:`, { 
+        found: !!maxIdResult?.length, 
+        error: idError?.message,
+        max_id: maxIdResult?.[0]?.id || null
+      });
+      
       if (idError) {
+        console.log(`[MEMBER-POST] Failed to generate ID - returning 500`);
         return new Response(
           JSON.stringify({ error: `Failed to generate ID: ${idError.message}` }),
           { headers: { 'Content-Type': 'application/json' }, status: 500 }
@@ -195,9 +282,17 @@ async function handleCreateMember(req, supabaseClient) {
       
       // If no members exist yet, start with ID 1, otherwise increment the highest ID
       memberId = maxIdResult && maxIdResult.length > 0 ? maxIdResult[0].id + 1 : 1;
+      console.log(`[MEMBER-POST] Generated member ID: ${memberId}`);
     }
 
     // Insert member data with the generated or provided ID
+    console.log(`[MEMBER-POST] Inserting member data:`, {
+      id: memberId,
+      name: data.name,
+      points: data.points || 0,
+      books_read: data.books_read || 0
+    });
+    
     const { data: memberData, error: memberError } = await supabaseClient
       .from("members")
       .insert({
@@ -208,7 +303,17 @@ async function handleCreateMember(req, supabaseClient) {
       })
       .select()
 
+    console.log(`[MEMBER-POST] Member insert result:`, { 
+      success: !!memberData, 
+      error: memberError?.message,
+      member: memberData?.[0] ? { 
+        id: memberData[0].id, 
+        name: memberData[0].name 
+      } : null
+    });
+
     if (memberError) {
+      console.log(`[MEMBER-POST] Member insert failed - returning 500`);
       return new Response(
         JSON.stringify({ error: memberError.message }),
         { headers: { 'Content-Type': 'application/json' }, status: 500 }
@@ -217,16 +322,27 @@ async function handleCreateMember(req, supabaseClient) {
 
     // Get the inserted member's ID
     const newMemberId = memberData[0].id;
+    console.log(`[MEMBER-POST] New member created with ID: ${newMemberId}`);
 
     // Associate member with clubs
     if (data.clubs && data.clubs.length > 0) {
+      console.log(`[MEMBER-POST] Processing ${data.clubs.length} club associations:`, data.clubs);
+      
       // Verify all club IDs exist
       const { data: existingClubs, error: clubsError } = await supabaseClient
         .from("clubs")
         .select("id")
         .in("id", data.clubs)
 
+      console.log(`[MEMBER-POST] Club verification result:`, { 
+        requested_count: data.clubs.length,
+        found_count: existingClubs?.length || 0,
+        error: clubsError?.message,
+        found_clubs: existingClubs?.map(c => c.id) || []
+      });
+
       if (clubsError) {
+        console.log(`[MEMBER-POST] Club verification failed - returning partial success`);
         return new Response(
           JSON.stringify({ 
             error: clubsError.message,
@@ -242,7 +358,13 @@ async function handleCreateMember(req, supabaseClient) {
       const existingClubIds = existingClubs.map(c => c.id);
       const nonExistentClubs = data.clubs.filter(id => !existingClubIds.includes(id));
       
+      console.log(`[MEMBER-POST] Club validation:`, {
+        existing_clubs: existingClubIds,
+        non_existent_clubs: nonExistentClubs
+      });
+      
       if (nonExistentClubs.length > 0) {
+        console.log(`[MEMBER-POST] Some clubs don't exist - returning partial success`);
         return new Response(
           JSON.stringify({ 
             error: `The following clubs do not exist: ${nonExistentClubs.join(', ')}`,
@@ -260,11 +382,19 @@ async function handleCreateMember(req, supabaseClient) {
         club_id: clubId
       }));
 
+      console.log(`[MEMBER-POST] Inserting ${memberClubData.length} club associations:`, memberClubData);
+
       const { error: associationError } = await supabaseClient
         .from("memberclubs")
         .insert(memberClubData)
 
+      console.log(`[MEMBER-POST] Club associations insert result:`, { 
+        success: !associationError, 
+        error: associationError?.message 
+      });
+
       if (associationError) {
+        console.log(`[MEMBER-POST] Club associations failed - returning partial success`);
         return new Response(
           JSON.stringify({ 
             error: associationError.message,
@@ -275,21 +405,32 @@ async function handleCreateMember(req, supabaseClient) {
           { headers: { 'Content-Type': 'application/json' }, status: 500 }
         )
       }
+    } else {
+      console.log(`[MEMBER-POST] No club associations to process`);
     }
 
+    const responseData = {
+      success: true, 
+      message: "Member created successfully",
+      member: {
+        ...memberData[0],
+        clubs: data.clubs || []
+      }
+    };
+
+    console.log(`[MEMBER-POST] Member creation completed successfully:`, {
+      member_id: responseData.member.id,
+      member_name: responseData.member.name,
+      clubs_associated: responseData.member.clubs.length
+    });
+
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "Member created successfully",
-        member: {
-          ...memberData[0],
-          clubs: data.clubs || []
-        }
-      }),
+      JSON.stringify(responseData),
       { headers: { 'Content-Type': 'application/json' } }
     )
     
   } catch (error) {
+    console.log(`[MEMBER-POST] ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { 'Content-Type': 'application/json' }, status: 500 }
@@ -302,11 +443,15 @@ async function handleCreateMember(req, supabaseClient) {
  */
 async function handleUpdateMember(req, supabaseClient) {
   try {
+    console.log(`[MEMBER-PUT] Starting handleUpdateMember`);
+    
     // Get the request body
     const data = await req.json()
+    console.log(`[MEMBER-PUT] Request body:`, JSON.stringify(data, null, 2));
 
     // Validate required fields
     if (!data.id) {
+      console.log(`[MEMBER-PUT] Missing member ID - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Member ID is required' }),
         { headers: { 'Content-Type': 'application/json' }, status: 400 }
@@ -314,13 +459,20 @@ async function handleUpdateMember(req, supabaseClient) {
     }
 
     // Check if member exists
+    console.log(`[MEMBER-PUT] Checking if member exists: "${data.id}"`);
     const { data: existingMember, error: checkError } = await supabaseClient
       .from("members")
       .select("id")
       .eq("id", data.id)
       .single()
 
+    console.log(`[MEMBER-PUT] Member existence check:`, { 
+      found: !!existingMember, 
+      error: checkError?.message 
+    });
+
     if (checkError || !existingMember) {
+      console.log(`[MEMBER-PUT] Member not found - returning 404`);
       return new Response(
         JSON.stringify({ error: 'Member not found' }),
         { headers: { 'Content-Type': 'application/json' }, status: 404 }
@@ -333,18 +485,32 @@ async function handleUpdateMember(req, supabaseClient) {
     if (data.points !== undefined) updateData.points = data.points
     if (data.books_read !== undefined) updateData.books_read = data.books_read
 
+    console.log(`[MEMBER-PUT] Member update data prepared:`, updateData);
+
     let updatedMember = { id: data.id };
     let clubsUpdated = false;
 
     // Update member data if there are fields to update
     if (Object.keys(updateData).length > 0) {
+      console.log(`[MEMBER-PUT] Updating member with data:`, updateData);
+      
       const { data: memberData, error: updateError } = await supabaseClient
         .from("members")
         .update(updateData)
         .eq("id", data.id)
         .select()
 
+      console.log(`[MEMBER-PUT] Member update result:`, { 
+        success: !!memberData, 
+        error: updateError?.message,
+        member: memberData?.[0] ? { 
+          id: memberData[0].id, 
+          name: memberData[0].name 
+        } : null
+      });
+
       if (updateError) {
+        console.log(`[MEMBER-PUT] Member update failed - returning 500`);
         return new Response(
           JSON.stringify({ error: updateError.message }),
           { headers: { 'Content-Type': 'application/json' }, status: 500 }
@@ -352,11 +518,16 @@ async function handleUpdateMember(req, supabaseClient) {
       }
 
       updatedMember = memberData[0];
+    } else {
+      console.log(`[MEMBER-PUT] No member fields to update`);
     }
 
     // Handle club associations if provided
     if (data.clubs !== undefined) {
+      console.log(`[MEMBER-PUT] Processing club associations update:`, data.clubs);
+      
       if (!Array.isArray(data.clubs)) {
+        console.log(`[MEMBER-PUT] Invalid clubs format - returning 400`);
         return new Response(
           JSON.stringify({ 
             error: 'Clubs must be an array',
@@ -369,12 +540,20 @@ async function handleUpdateMember(req, supabaseClient) {
       }
 
       // Get existing club associations
+      console.log(`[MEMBER-PUT] Getting existing club associations for member: "${data.id}"`);
       const { data: existingAssociations, error: getError } = await supabaseClient
         .from("memberclubs")
         .select("club_id")
         .eq("member_id", data.id)
 
+      console.log(`[MEMBER-PUT] Existing associations result:`, { 
+        count: existingAssociations?.length || 0, 
+        error: getError?.message,
+        club_ids: existingAssociations?.map(a => a.club_id) || []
+      });
+
       if (getError) {
+        console.log(`[MEMBER-PUT] Failed to get existing associations - returning 500`);
         return new Response(
           JSON.stringify({ 
             error: getError.message,
@@ -394,15 +573,30 @@ async function handleUpdateMember(req, supabaseClient) {
       // Clubs to remove (in existing but not in new list)
       const clubsToRemove = existingClubIds.filter(id => !data.clubs.includes(id));
 
+      console.log(`[MEMBER-PUT] Club changes:`, { 
+        to_add: clubsToAdd, 
+        to_remove: clubsToRemove 
+      });
+
       // Add new associations
       if (clubsToAdd.length > 0) {
+        console.log(`[MEMBER-PUT] Adding ${clubsToAdd.length} new club associations...`);
+        
         // Verify all club IDs exist
         const { data: validClubs, error: verifyError } = await supabaseClient
           .from("clubs")
           .select("id")
           .in("id", clubsToAdd)
 
+        console.log(`[MEMBER-PUT] Club verification for new associations:`, { 
+          requested_count: clubsToAdd.length,
+          found_count: validClubs?.length || 0,
+          error: verifyError?.message,
+          found_clubs: validClubs?.map(c => c.id) || []
+        });
+
         if (verifyError) {
+          console.log(`[MEMBER-PUT] Club verification failed - returning 500`);
           return new Response(
             JSON.stringify({ 
               error: verifyError.message,
@@ -417,7 +611,13 @@ async function handleUpdateMember(req, supabaseClient) {
         const validClubIds = validClubs.map(c => c.id);
         const invalidClubs = clubsToAdd.filter(id => !validClubIds.includes(id));
         
+        console.log(`[MEMBER-PUT] Club validation:`, {
+          valid_clubs: validClubIds,
+          invalid_clubs: invalidClubs
+        });
+        
         if (invalidClubs.length > 0) {
+          console.log(`[MEMBER-PUT] Some clubs don't exist - returning 400`);
           return new Response(
             JSON.stringify({ 
               error: `The following clubs do not exist: ${invalidClubs.join(', ')}`,
@@ -436,11 +636,19 @@ async function handleUpdateMember(req, supabaseClient) {
         }));
 
         if (newAssociations.length > 0) {
+          console.log(`[MEMBER-PUT] Inserting ${newAssociations.length} new associations:`, newAssociations);
+          
           const { error: addError } = await supabaseClient
             .from("memberclubs")
             .insert(newAssociations)
 
+          console.log(`[MEMBER-PUT] New associations insert result:`, { 
+            success: !addError, 
+            error: addError?.message 
+          });
+
           if (addError) {
+            console.log(`[MEMBER-PUT] Failed to add new associations - returning 500`);
             return new Response(
               JSON.stringify({ 
                 error: addError.message,
@@ -458,13 +666,21 @@ async function handleUpdateMember(req, supabaseClient) {
 
       // Remove old associations
       if (clubsToRemove.length > 0) {
+        console.log(`[MEMBER-PUT] Removing ${clubsToRemove.length} old associations:`, clubsToRemove);
+        
         const { error: removeError } = await supabaseClient
           .from("memberclubs")
           .delete()
           .eq("member_id", data.id)
           .in("club_id", clubsToRemove)
 
+        console.log(`[MEMBER-PUT] Remove associations result:`, { 
+          success: !removeError, 
+          error: removeError?.message 
+        });
+
         if (removeError) {
+          console.log(`[MEMBER-PUT] Failed to remove associations - returning 500`);
           return new Response(
             JSON.stringify({ 
               error: removeError.message,
@@ -478,27 +694,39 @@ async function handleUpdateMember(req, supabaseClient) {
         
         clubsUpdated = true;
       }
+    } else {
+      console.log(`[MEMBER-PUT] No club associations update requested`);
     }
 
     // If nothing was updated
     if (Object.keys(updateData).length === 0 && !clubsUpdated) {
+      console.log(`[MEMBER-PUT] No changes to apply`);
       return new Response(
         JSON.stringify({ message: "No changes to apply" }),
         { headers: { 'Content-Type': 'application/json' } }
       )
     }
 
+    const responseData = {
+      success: true, 
+      message: "Member updated successfully",
+      member: updatedMember,
+      clubs_updated: clubsUpdated
+    };
+
+    console.log(`[MEMBER-PUT] Member update completed successfully:`, {
+      member_id: responseData.member.id,
+      fields_updated: Object.keys(updateData),
+      clubs_updated: responseData.clubs_updated
+    });
+
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "Member updated successfully",
-        member: updatedMember,
-        clubs_updated: clubsUpdated
-      }),
+      JSON.stringify(responseData),
       { headers: { 'Content-Type': 'application/json' } }
     )
     
   } catch (error) {
+    console.log(`[MEMBER-PUT] ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { 'Content-Type': 'application/json' }, status: 500 }
@@ -511,11 +739,16 @@ async function handleUpdateMember(req, supabaseClient) {
  */
 async function handleDeleteMember(req, supabaseClient) {
   try {
+    console.log(`[MEMBER-DELETE] Starting handleDeleteMember`);
+    
     // Get URL parameters
     const url = new URL(req.url);
     const memberId = url.searchParams.get('id');
 
+    console.log(`[MEMBER-DELETE] Request parameters:`, { memberId });
+
     if (!memberId) {
+      console.log(`[MEMBER-DELETE] Missing member ID - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Member ID is required' }),
         { headers: { 'Content-Type': 'application/json' }, status: 400 }
@@ -523,26 +756,43 @@ async function handleDeleteMember(req, supabaseClient) {
     }
 
     // Check if member exists
+    console.log(`[MEMBER-DELETE] Checking if member exists: "${memberId}"`);
     const { data: existingMember, error: checkError } = await supabaseClient
       .from("members")
       .select("id")
       .eq("id", memberId)
       .single()
 
+    console.log(`[MEMBER-DELETE] Member existence check:`, { 
+      found: !!existingMember, 
+      error: checkError?.message 
+    });
+
     if (checkError || !existingMember) {
+      console.log(`[MEMBER-DELETE] Member not found - returning 404`);
       return new Response(
         JSON.stringify({ error: 'Member not found' }),
         { headers: { 'Content-Type': 'application/json' }, status: 404 }
       )
     }
 
+    // Start cascade deletion
+    console.log(`[MEMBER-DELETE] Starting cascade deletion for member: "${memberId}"`);
+
     // Delete from shame list first (now club-based)
+    console.log(`[MEMBER-DELETE] Deleting shame list entries for member: "${memberId}"`);
     const { error: shameError } = await supabaseClient
       .from("shamelist")
       .delete()
       .eq("member_id", memberId)
 
+    console.log(`[MEMBER-DELETE] Shame list deletion result:`, { 
+      success: !shameError, 
+      error: shameError?.message 
+    });
+
     if (shameError) {
+      console.log(`[MEMBER-DELETE] Failed to delete shame list entries - returning 500`);
       return new Response(
         JSON.stringify({ error: `Failed to delete from shame list: ${shameError.message}` }),
         { headers: { 'Content-Type': 'application/json' }, status: 500 }
@@ -550,12 +800,19 @@ async function handleDeleteMember(req, supabaseClient) {
     }
 
     // Delete club associations
+    console.log(`[MEMBER-DELETE] Deleting club associations for member: "${memberId}"`);
     const { error: associationError } = await supabaseClient
       .from("memberclubs")
       .delete()
       .eq("member_id", memberId)
 
+    console.log(`[MEMBER-DELETE] Club associations deletion result:`, { 
+      success: !associationError, 
+      error: associationError?.message 
+    });
+
     if (associationError) {
+      console.log(`[MEMBER-DELETE] Failed to delete club associations - returning 500`);
       return new Response(
         JSON.stringify({ error: `Failed to delete club associations: ${associationError.message}` }),
         { headers: { 'Content-Type': 'application/json' }, status: 500 }
@@ -563,17 +820,26 @@ async function handleDeleteMember(req, supabaseClient) {
     }
 
     // Delete the member
+    console.log(`[MEMBER-DELETE] Deleting member: "${memberId}"`);
     const { error: deleteError } = await supabaseClient
       .from("members")
       .delete()
       .eq("id", memberId)
 
+    console.log(`[MEMBER-DELETE] Member deletion result:`, { 
+      success: !deleteError, 
+      error: deleteError?.message 
+    });
+
     if (deleteError) {
+      console.log(`[MEMBER-DELETE] Member deletion failed - returning 500`);
       return new Response(
         JSON.stringify({ error: deleteError.message }),
         { headers: { 'Content-Type': 'application/json' }, status: 500 }
       )
     }
+
+    console.log(`[MEMBER-DELETE] Member deletion completed successfully`);
 
     return new Response(
       JSON.stringify({ 
@@ -584,6 +850,7 @@ async function handleDeleteMember(req, supabaseClient) {
     )
     
   } catch (error) {
+    console.log(`[MEMBER-DELETE] ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { 'Content-Type': 'application/json' }, status: 500 }
