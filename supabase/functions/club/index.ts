@@ -1,8 +1,18 @@
-// supabase/functions/club/index.ts
+// supabase/functions/club/index.ts - Updated with CORS support
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
+
   try {
     // Create a Supabase client with the Auth context of the function
     const supabaseClient = createClient(
@@ -24,13 +34,25 @@ serve(async (req) => {
       default:
         return new Response(
           JSON.stringify({ error: 'Method not allowed' }),
-          { headers: { 'Content-Type': 'application/json' }, status: 405 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 405 
+          }
         );
     }
   } catch (error) {
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 })
@@ -75,7 +97,13 @@ async function handleGetClub(req, supabaseClient) {
         console.log(`[CLUB-GET] Missing server_id for discord_channel search - returning 400`);
         return new Response(
           JSON.stringify({ error: 'Server ID is required when searching by discord_channel' }),
-          { headers: { 'Content-Type': 'application/json' }, status: 400 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 400 
+          }
         );
       }
 
@@ -88,7 +116,13 @@ async function handleGetClub(req, supabaseClient) {
         console.log(`[CLUB-GET] Server validation failed - returning 404`);
         return new Response(
           JSON.stringify({ error: serverValidation.error }),
-          { headers: { 'Content-Type': 'application/json' }, status: 404 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 404 
+          }
         );
       }
 
@@ -109,7 +143,13 @@ async function handleGetClub(req, supabaseClient) {
           JSON.stringify({ 
             error: clubError?.message || 'Club not found with this discord channel in the specified server' 
           }),
-          { headers: { 'Content-Type': 'application/json' }, status: 404 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 404 
+          }
         )
       }
 
@@ -125,7 +165,13 @@ async function handleGetClub(req, supabaseClient) {
       console.log(`[CLUB-GET] Missing club_id - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Club ID is required' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       );
     }
 
@@ -133,7 +179,13 @@ async function handleGetClub(req, supabaseClient) {
       console.log(`[CLUB-GET] Missing server_id - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Server ID is required' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       );
     }
 
@@ -146,7 +198,13 @@ async function handleGetClub(req, supabaseClient) {
       console.log(`[CLUB-GET] Server validation failed - returning 404`);
       return new Response(
         JSON.stringify({ error: serverValidation.error }),
-        { headers: { 'Content-Type': 'application/json' }, status: 404 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 404 
+        }
       );
     }
 
@@ -157,7 +215,13 @@ async function handleGetClub(req, supabaseClient) {
     console.log(`[CLUB-GET] ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 }
@@ -183,7 +247,13 @@ async function getFullClubDetails(supabaseClient, clubId, serverId) {
     console.log(`[CLUB-GET] Club not found - returning 404`);
     return new Response(
       JSON.stringify({ error: clubError?.message || 'Club not found in this server' }),
-      { headers: { 'Content-Type': 'application/json' }, status: 404 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 404 
+      }
     )
   }
 
@@ -200,7 +270,13 @@ async function getFullClubDetails(supabaseClient, clubId, serverId) {
     console.log(`[CLUB-GET] MemberClubs query failed - returning 500`);
     return new Response(
       JSON.stringify({ error: memberClubsError.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 
@@ -218,7 +294,12 @@ async function getFullClubDetails(supabaseClient, clubId, serverId) {
         past_sessions: [],
         shame_list: []
       }),
-      { headers: { 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        } 
+      }
     )
   }
 
@@ -239,7 +320,13 @@ async function getFullClubDetails(supabaseClient, clubId, serverId) {
     console.log(`[CLUB-GET] Members query failed - returning 500`);
     return new Response(
       JSON.stringify({ error: membersError.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 
@@ -293,7 +380,13 @@ async function getFullClubDetails(supabaseClient, clubId, serverId) {
     console.log(`[CLUB-GET] Sessions query failed - returning 500`);
     return new Response(
       JSON.stringify({ error: sessionsError.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 
@@ -316,7 +409,13 @@ async function getFullClubDetails(supabaseClient, clubId, serverId) {
       console.log(`[CLUB-GET] Book query failed - returning 500`);
       return new Response(
         JSON.stringify({ error: bookError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -333,7 +432,13 @@ async function getFullClubDetails(supabaseClient, clubId, serverId) {
       console.log(`[CLUB-GET] Discussions query failed - returning 500`);
       return new Response(
         JSON.stringify({ error: discussionsError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -386,7 +491,13 @@ async function getFullClubDetails(supabaseClient, clubId, serverId) {
     console.log(`[CLUB-GET] Shame list query failed - returning 500`);
     return new Response(
       JSON.stringify({ error: shame_list_error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 
@@ -415,7 +526,12 @@ async function getFullClubDetails(supabaseClient, clubId, serverId) {
   // Return the full reconstructed club data
   return new Response(
     JSON.stringify(response_data),
-    { headers: { 'Content-Type': 'application/json' } }
+    { 
+      headers: { 
+        'Content-Type': 'application/json',
+        ...corsHeaders 
+      } 
+    }
   )
 }
 
@@ -435,7 +551,13 @@ async function handleCreateClub(req, supabaseClient) {
       console.log(`[CLUB-POST] Missing club name - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Club name is required' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       )
     }
 
@@ -443,7 +565,13 @@ async function handleCreateClub(req, supabaseClient) {
       console.log(`[CLUB-POST] Missing server_id - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Server ID is required' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       )
     }
 
@@ -456,7 +584,13 @@ async function handleCreateClub(req, supabaseClient) {
       console.log(`[CLUB-POST] Server validation failed - returning 404`);
       return new Response(
         JSON.stringify({ error: serverValidation.error }),
-        { headers: { 'Content-Type': 'application/json' }, status: 404 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 404 
+        }
       );
     }
 
@@ -492,7 +626,13 @@ async function handleCreateClub(req, supabaseClient) {
       console.log(`[CLUB-POST] Club insert failed - returning 500`);
       return new Response(
         JSON.stringify({ error: clubError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -560,7 +700,12 @@ async function handleCreateClub(req, supabaseClient) {
             message: "Club created successfully but session data was incomplete",
             club: clubData[0]
           }),
-          { headers: { 'Content-Type': 'application/json' } }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            } 
+          }
         )
       }
 
@@ -587,7 +732,12 @@ async function handleCreateClub(req, supabaseClient) {
             message: "Club created but failed to add book: " + bookError.message,
             club: clubData[0]
           }),
-          { headers: { 'Content-Type': 'application/json' } }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            } 
+          }
         )
       }
 
@@ -618,7 +768,12 @@ async function handleCreateClub(req, supabaseClient) {
             message: "Club created but failed to add session: " + sessionError.message,
             club: clubData[0]
           }),
-          { headers: { 'Content-Type': 'application/json' } }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            } 
+          }
         )
       }
 
@@ -698,14 +853,25 @@ async function handleCreateClub(req, supabaseClient) {
         message: "Club created successfully",
         club: clubData[0]
       }),
-      { headers: { 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        } 
+      }
     )
     
   } catch (error) {
     console.log(`[CLUB-POST] ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 }
@@ -726,7 +892,13 @@ async function handleUpdateClub(req, supabaseClient) {
       console.log(`[CLUB-PUT] Missing club ID - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Club ID is required' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       )
     }
 
@@ -734,7 +906,13 @@ async function handleUpdateClub(req, supabaseClient) {
       console.log(`[CLUB-PUT] Missing server_id - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Server ID is required' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       )
     }
 
@@ -747,7 +925,13 @@ async function handleUpdateClub(req, supabaseClient) {
       console.log(`[CLUB-PUT] Server validation failed - returning 404`);
       return new Response(
         JSON.stringify({ error: serverValidation.error }),
-        { headers: { 'Content-Type': 'application/json' }, status: 404 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 404 
+        }
       );
     }
 
@@ -763,7 +947,13 @@ async function handleUpdateClub(req, supabaseClient) {
       console.log(`[CLUB-PUT] No fields to update - returning 400`);
       return new Response(
         JSON.stringify({ error: 'No fields to update' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       )
     }
 
@@ -782,7 +972,13 @@ async function handleUpdateClub(req, supabaseClient) {
       console.log(`[CLUB-PUT] Club not found - returning 404`);
       return new Response(
         JSON.stringify({ error: 'Club not found in this server' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 404 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 404 
+        }
       )
     }
 
@@ -801,7 +997,13 @@ async function handleUpdateClub(req, supabaseClient) {
       console.log(`[CLUB-PUT] Club update failed - returning 500`);
       return new Response(
         JSON.stringify({ error: updateError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -819,7 +1021,13 @@ async function handleUpdateClub(req, supabaseClient) {
             message: "Club was updated but shame list was not modified",
             club: clubData[0]
           }),
-          { headers: { 'Content-Type': 'application/json' }, status: 400 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 400 
+          }
         )
       }
 
@@ -845,7 +1053,13 @@ async function handleUpdateClub(req, supabaseClient) {
             message: "Club was updated but could not retrieve shame list",
             club: clubData[0]
           }),
-          { headers: { 'Content-Type': 'application/json' }, status: 500 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 500 
+          }
         )
       }
 
@@ -930,14 +1144,25 @@ async function handleUpdateClub(req, supabaseClient) {
         club: clubData[0],
         shame_list_updated: shame_list_updated
       }),
-      { headers: { 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        } 
+      }
     )
     
   } catch (error) {
     console.log(`[CLUB-PUT] ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 }
@@ -960,7 +1185,13 @@ async function handleDeleteClub(req, supabaseClient) {
       console.log(`[CLUB-DELETE] Missing club ID - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Club ID is required' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       )
     }
 
@@ -968,7 +1199,13 @@ async function handleDeleteClub(req, supabaseClient) {
       console.log(`[CLUB-DELETE] Missing server_id - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Server ID is required' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       )
     }
 
@@ -981,7 +1218,13 @@ async function handleDeleteClub(req, supabaseClient) {
       console.log(`[CLUB-DELETE] Server validation failed - returning 404`);
       return new Response(
         JSON.stringify({ error: serverValidation.error }),
-        { headers: { 'Content-Type': 'application/json' }, status: 404 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 404 
+        }
       );
     }
 
@@ -1000,7 +1243,13 @@ async function handleDeleteClub(req, supabaseClient) {
       console.log(`[CLUB-DELETE] Club not found - returning 404`);
       return new Response(
         JSON.stringify({ error: 'Club not found in this server' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 404 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 404 
+        }
       )
     }
 
@@ -1032,7 +1281,13 @@ async function handleDeleteClub(req, supabaseClient) {
         console.log(`[CLUB-DELETE] Failed to delete discussions - returning 500`);
         return new Response(
           JSON.stringify({ error: `Failed to delete discussions: ${discussionError.message}` }),
-          { headers: { 'Content-Type': 'application/json' }, status: 500 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 500 
+          }
         )
       }
 
@@ -1049,7 +1304,13 @@ async function handleDeleteClub(req, supabaseClient) {
         console.log(`[CLUB-DELETE] Failed to delete sessions - returning 500`);
         return new Response(
           JSON.stringify({ error: `Failed to delete sessions: ${sessionError.message}` }),
-          { headers: { 'Content-Type': 'application/json' }, status: 500 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 500 
+          }
         )
       }
     } else {
@@ -1069,7 +1330,13 @@ async function handleDeleteClub(req, supabaseClient) {
       console.log(`[CLUB-DELETE] Failed to delete shame list entries - returning 500`);
       return new Response(
         JSON.stringify({ error: `Failed to delete shame list entries: ${shame_list_error.message}` }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -1086,7 +1353,13 @@ async function handleDeleteClub(req, supabaseClient) {
       console.log(`[CLUB-DELETE] Failed to delete member associations - returning 500`);
       return new Response(
         JSON.stringify({ error: `Failed to delete member associations: ${memberClubError.message}` }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -1104,7 +1377,13 @@ async function handleDeleteClub(req, supabaseClient) {
       console.log(`[CLUB-DELETE] Failed to delete club - returning 500`);
       return new Response(
         JSON.stringify({ error: deleteError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -1114,14 +1393,25 @@ async function handleDeleteClub(req, supabaseClient) {
         success: true, 
         message: "Club deleted successfully" 
       }),
-      { headers: { 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        } 
+      }
     )
     
   } catch (error) {
     console.log(`[CLUB-DELETE] ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 }

@@ -1,8 +1,18 @@
-// supabase/functions/session/index.ts - Updated for new schema with debug logs
+// supabase/functions/session/index.ts - Updated for new schema with debug logs and CORS
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
+
   try {
     console.log(`[SESSION] === New ${req.method} request received ===`);
     
@@ -27,14 +37,26 @@ serve(async (req) => {
         console.log(`[SESSION] Method not allowed: ${req.method}`);
         return new Response(
           JSON.stringify({ error: 'Method not allowed' }),
-          { headers: { 'Content-Type': 'application/json' }, status: 405 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 405 
+          }
         );
     }
   } catch (error) {
     console.log(`[SESSION] FATAL ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 })
@@ -56,7 +78,13 @@ async function handleGetSession(req, supabaseClient) {
       console.log(`[SESSION-GET] Missing session ID - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Session ID is required' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       );
     }
 
@@ -83,7 +111,13 @@ async function handleGetSession(req, supabaseClient) {
       console.log(`[SESSION-GET] Session not found - returning 404`);
       return new Response(
         JSON.stringify({ error: sessionError?.message || 'Session not found' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 404 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 404 
+        }
       )
     }
 
@@ -105,7 +139,13 @@ async function handleGetSession(req, supabaseClient) {
       console.log(`[SESSION-GET] Club query failed - returning 500`);
       return new Response(
         JSON.stringify({ error: clubError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -127,7 +167,13 @@ async function handleGetSession(req, supabaseClient) {
       console.log(`[SESSION-GET] Book query failed - returning 500`);
       return new Response(
         JSON.stringify({ error: bookError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -149,7 +195,13 @@ async function handleGetSession(req, supabaseClient) {
       console.log(`[SESSION-GET] Discussions query failed - returning 500`);
       return new Response(
         JSON.stringify({ error: discussionsError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -170,7 +222,13 @@ async function handleGetSession(req, supabaseClient) {
       console.log(`[SESSION-GET] Shame list query failed - returning 500`);
       return new Response(
         JSON.stringify({ error: shameListError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -196,7 +254,13 @@ async function handleGetSession(req, supabaseClient) {
         console.log(`[SESSION-GET] Shame list members query failed - returning 500`);
         return new Response(
           JSON.stringify({ error: membersError.message }),
-          { headers: { 'Content-Type': 'application/json' }, status: 500 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 500 
+          }
         )
       }
       
@@ -240,13 +304,24 @@ async function handleGetSession(req, supabaseClient) {
     // Return the session with associated data
     return new Response(
       JSON.stringify(responseData),
-      { headers: { 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        } 
+      }
     )
   } catch (error) {
     console.log(`[SESSION-GET] ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 }
@@ -267,7 +342,13 @@ async function handleCreateSession(req, supabaseClient) {
       console.log(`[SESSION-POST] Missing club_id - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Club ID is required' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       )
     }
 
@@ -275,7 +356,13 @@ async function handleCreateSession(req, supabaseClient) {
       console.log(`[SESSION-POST] Missing book data - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Book information is required' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       )
     }
 
@@ -283,7 +370,13 @@ async function handleCreateSession(req, supabaseClient) {
       console.log(`[SESSION-POST] Missing book title/author - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Book title and author are required' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       )
     }
 
@@ -305,7 +398,13 @@ async function handleCreateSession(req, supabaseClient) {
       console.log(`[SESSION-POST] Club not found - returning 404`);
       return new Response(
         JSON.stringify({ error: 'Club not found' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 404 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 404 
+        }
       )
     }
 
@@ -339,7 +438,13 @@ async function handleCreateSession(req, supabaseClient) {
       console.log(`[SESSION-POST] Book insert failed - returning 500`);
       return new Response(
         JSON.stringify({ error: bookError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -381,7 +486,13 @@ async function handleCreateSession(req, supabaseClient) {
       console.log(`[SESSION-POST] Session insert failed - returning 500`);
       return new Response(
         JSON.stringify({ error: sessionError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -485,14 +596,25 @@ async function handleCreateSession(req, supabaseClient) {
 
     return new Response(
       JSON.stringify(responseData),
-      { headers: { 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        } 
+      }
     )
     
   } catch (error) {
     console.log(`[SESSION-POST] ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 }
@@ -513,7 +635,13 @@ async function handleUpdateSession(req, supabaseClient) {
       console.log(`[SESSION-PUT] Missing session ID - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Session ID is required' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       )
     }
 
@@ -535,7 +663,13 @@ async function handleUpdateSession(req, supabaseClient) {
       console.log(`[SESSION-PUT] Session not found - returning 404`);
       return new Response(
         JSON.stringify({ error: 'Session not found' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 404 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 404 
+        }
       )
     }
 
@@ -571,7 +705,13 @@ async function handleUpdateSession(req, supabaseClient) {
           console.log(`[SESSION-PUT] Failed to get current book - returning 500`);
           return new Response(
             JSON.stringify({ error: bookError.message }),
-            { headers: { 'Content-Type': 'application/json' }, status: 500 }
+            { 
+              headers: { 
+                'Content-Type': 'application/json',
+                ...corsHeaders 
+              }, 
+              status: 500 
+            }
           )
         }
 
@@ -600,7 +740,13 @@ async function handleUpdateSession(req, supabaseClient) {
           console.log(`[SESSION-PUT] Book update failed - returning 500`);
           return new Response(
             JSON.stringify({ error: updateBookError.message }),
-            { headers: { 'Content-Type': 'application/json' }, status: 500 }
+            { 
+              headers: { 
+                'Content-Type': 'application/json',
+                ...corsHeaders 
+              }, 
+              status: 500 
+            }
           )
         }
         
@@ -637,7 +783,13 @@ async function handleUpdateSession(req, supabaseClient) {
             partial_success: bookUpdated,
             message: bookUpdated ? "Book was updated but session club_id was not" : null
           }),
-          { headers: { 'Content-Type': 'application/json' }, status: 404 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 404 
+          }
         )
       }
       
@@ -673,7 +825,13 @@ async function handleUpdateSession(req, supabaseClient) {
             partial_success: bookUpdated,
             message: bookUpdated ? "Book was updated but session was not" : null
           }),
-          { headers: { 'Content-Type': 'application/json' }, status: 500 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 500 
+          }
         )
       }
       
@@ -695,7 +853,13 @@ async function handleUpdateSession(req, supabaseClient) {
             partial_success: bookUpdated || sessionUpdated,
             message: "Some updates were applied but discussions were not modified"
           }),
-          { headers: { 'Content-Type': 'application/json' }, status: 400 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 400 
+          }
         )
       }
 
@@ -720,7 +884,13 @@ async function handleUpdateSession(req, supabaseClient) {
             partial_success: bookUpdated || sessionUpdated,
             message: "Some updates were applied but could not retrieve discussions"
           }),
-          { headers: { 'Content-Type': 'application/json' }, status: 500 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 500 
+          }
         )
       }
 
@@ -855,7 +1025,12 @@ async function handleUpdateSession(req, supabaseClient) {
       console.log(`[SESSION-PUT] No changes applied - returning message`);
       return new Response(
         JSON.stringify({ message: "No changes to apply" }),
-        { headers: { 'Content-Type': 'application/json' } }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          } 
+        }
       )
     }
 
@@ -873,14 +1048,25 @@ async function handleUpdateSession(req, supabaseClient) {
 
     return new Response(
       JSON.stringify(responseData),
-      { headers: { 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        } 
+      }
     )
     
   } catch (error) {
     console.log(`[SESSION-PUT] ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 }
@@ -902,7 +1088,13 @@ async function handleDeleteSession(req, supabaseClient) {
       console.log(`[SESSION-DELETE] Missing session ID - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Session ID is required' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       )
     }
 
@@ -924,7 +1116,13 @@ async function handleDeleteSession(req, supabaseClient) {
       console.log(`[SESSION-DELETE] Session not found - returning 404`);
       return new Response(
         JSON.stringify({ error: 'Session not found' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 404 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 404 
+        }
       )
     }
 
@@ -948,7 +1146,13 @@ async function handleDeleteSession(req, supabaseClient) {
       console.log(`[SESSION-DELETE] Failed to delete discussions - returning 500`);
       return new Response(
         JSON.stringify({ error: `Failed to delete discussions: ${discussionsError.message}` }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -968,7 +1172,13 @@ async function handleDeleteSession(req, supabaseClient) {
       console.log(`[SESSION-DELETE] Session deletion failed - returning 500`);
       return new Response(
         JSON.stringify({ error: deleteSessionError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -993,7 +1203,12 @@ async function handleDeleteSession(req, supabaseClient) {
           message: "Session deleted but could not delete associated book",
           warning: deleteBookError.message
         }),
-        { headers: { 'Content-Type': 'application/json' } }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          } 
+        }
       )
     }
 
@@ -1004,14 +1219,25 @@ async function handleDeleteSession(req, supabaseClient) {
         success: true, 
         message: "Session deleted successfully" 
       }),
-      { headers: { 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        } 
+      }
     )
     
   } catch (error) {
     console.log(`[SESSION-DELETE] ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 }

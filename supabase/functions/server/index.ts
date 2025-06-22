@@ -2,7 +2,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
+
   try {
     console.log(`[SERVER] === New ${req.method} request received ===`);
     
@@ -27,14 +37,26 @@ serve(async (req) => {
         console.log(`[SERVER] Method not allowed: ${req.method}`);
         return new Response(
           JSON.stringify({ error: 'Method not allowed' }),
-          { headers: { 'Content-Type': 'application/json' }, status: 405 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 405 
+          }
         );
     }
   } catch (error) {
     console.log(`[SERVER] FATAL ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 })
@@ -71,7 +93,13 @@ async function handleGetServer(req, supabaseClient) {
         console.log(`[SERVER-GET] All servers query failed - returning 500`);
         return new Response(
           JSON.stringify({ error: serversError.message }),
-          { headers: { 'Content-Type': 'application/json' }, status: 500 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 500 
+          }
         )
       }
 
@@ -108,7 +136,12 @@ async function handleGetServer(req, supabaseClient) {
       console.log(`[SERVER-GET] All servers with clubs completed - returning data`);
       return new Response(
         JSON.stringify({ servers: serversWithClubs }),
-        { headers: { 'Content-Type': 'application/json' } }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          } 
+        }
       )
     }
 
@@ -131,7 +164,13 @@ async function handleGetServer(req, supabaseClient) {
       console.log(`[SERVER-GET] Server not found - returning 404`);
       return new Response(
         JSON.stringify({ error: serverError?.message || 'Server not found' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 404 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 404 
+        }
       )
     }
 
@@ -152,7 +191,13 @@ async function handleGetServer(req, supabaseClient) {
       console.log(`[SERVER-GET] Clubs query failed - returning 500`);
       return new Response(
         JSON.stringify({ error: clubsError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -206,13 +251,24 @@ async function handleGetServer(req, supabaseClient) {
         name: serverData.name,
         clubs: clubsWithDetails
       }),
-      { headers: { 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        } 
+      }
     )
   } catch (error) {
     console.log(`[SERVER-GET] ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 }
@@ -233,7 +289,13 @@ async function handleCreateServer(req, supabaseClient) {
       console.log(`[SERVER-POST] Missing server name - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Server name is required' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       )
     }
 
@@ -262,7 +324,13 @@ async function handleCreateServer(req, supabaseClient) {
       console.log(`[SERVER-POST] Server insert failed - returning 500`);
       return new Response(
         JSON.stringify({ error: serverError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -274,14 +342,25 @@ async function handleCreateServer(req, supabaseClient) {
         message: "Server created successfully",
         server: serverData[0]
       }),
-      { headers: { 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        } 
+      }
     )
     
   } catch (error) {
     console.log(`[SERVER-POST] ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 }
@@ -302,7 +381,13 @@ async function handleUpdateServer(req, supabaseClient) {
       console.log(`[SERVER-PUT] Missing server ID - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Server ID is required' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       )
     }
 
@@ -323,7 +408,13 @@ async function handleUpdateServer(req, supabaseClient) {
       console.log(`[SERVER-PUT] Server not found - returning 404`);
       return new Response(
         JSON.stringify({ error: 'Server not found' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 404 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 404 
+        }
       )
     }
 
@@ -338,7 +429,13 @@ async function handleUpdateServer(req, supabaseClient) {
       console.log(`[SERVER-PUT] No fields to update - returning 400`);
       return new Response(
         JSON.stringify({ error: 'No fields to update' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       )
     }
 
@@ -360,7 +457,13 @@ async function handleUpdateServer(req, supabaseClient) {
       console.log(`[SERVER-PUT] Server update failed - returning 500`);
       return new Response(
         JSON.stringify({ error: updateError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -372,14 +475,25 @@ async function handleUpdateServer(req, supabaseClient) {
         message: "Server updated successfully",
         server: serverData[0]
       }),
-      { headers: { 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        } 
+      }
     )
     
   } catch (error) {
     console.log(`[SERVER-PUT] ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 }
@@ -401,7 +515,13 @@ async function handleDeleteServer(req, supabaseClient) {
       console.log(`[SERVER-DELETE] Missing server ID - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Server ID is required' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       )
     }
 
@@ -422,7 +542,13 @@ async function handleDeleteServer(req, supabaseClient) {
       console.log(`[SERVER-DELETE] Server not found - returning 404`);
       return new Response(
         JSON.stringify({ error: 'Server not found' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 404 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 404 
+        }
       )
     }
 
@@ -445,7 +571,13 @@ async function handleDeleteServer(req, supabaseClient) {
           error: 'Cannot delete server with existing clubs. Please delete all clubs first.',
           clubs_count: clubsData.length
         }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       )
     }
 
@@ -465,7 +597,13 @@ async function handleDeleteServer(req, supabaseClient) {
       console.log(`[SERVER-DELETE] Server deletion failed - returning 500`);
       return new Response(
         JSON.stringify({ error: deleteError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -476,14 +614,25 @@ async function handleDeleteServer(req, supabaseClient) {
         success: true, 
         message: "Server deleted successfully" 
       }),
-      { headers: { 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        } 
+      }
     )
     
   } catch (error) {
     console.log(`[SERVER-DELETE] ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 }

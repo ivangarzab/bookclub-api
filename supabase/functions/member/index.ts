@@ -1,8 +1,18 @@
-// supabase/functions/member/index.ts - Updated for new schema with debug logs
+// supabase/functions/member/index.ts - Updated for new schema with debug logs and CORS
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
+
   try {
     console.log(`[MEMBER] === New ${req.method} request received ===`);
     
@@ -27,14 +37,26 @@ serve(async (req) => {
         console.log(`[MEMBER] Method not allowed: ${req.method}`);
         return new Response(
           JSON.stringify({ error: 'Method not allowed' }),
-          { headers: { 'Content-Type': 'application/json' }, status: 405 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 405 
+          }
         );
     }
   } catch (error) {
     console.log(`[MEMBER] FATAL ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 })
@@ -56,7 +78,13 @@ async function handleGetMember(req, supabaseClient) {
       console.log(`[MEMBER-GET] Missing member ID - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Member ID is required' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       );
     }
 
@@ -83,7 +111,13 @@ async function handleGetMember(req, supabaseClient) {
       console.log(`[MEMBER-GET] Member not found - returning 404`);
       return new Response(
         JSON.stringify({ error: memberError?.message || 'Member not found' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 404 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 404 
+        }
       )
     }
 
@@ -104,7 +138,13 @@ async function handleGetMember(req, supabaseClient) {
       console.log(`[MEMBER-GET] Member clubs query failed - returning 500`);
       return new Response(
         JSON.stringify({ error: memberClubsError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -130,7 +170,13 @@ async function handleGetMember(req, supabaseClient) {
         console.log(`[MEMBER-GET] Clubs details query failed - returning 500`);
         return new Response(
           JSON.stringify({ error: clubsError.message }),
-          { headers: { 'Content-Type': 'application/json' }, status: 500 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 500 
+          }
         )
       }
       
@@ -156,7 +202,13 @@ async function handleGetMember(req, supabaseClient) {
       console.log(`[MEMBER-GET] Shame list query failed - returning 500`);
       return new Response(
         JSON.stringify({ error: shameError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -182,7 +234,13 @@ async function handleGetMember(req, supabaseClient) {
         console.log(`[MEMBER-GET] Shame clubs details query failed - returning 500`);
         return new Response(
           JSON.stringify({ error: clubsError.message }),
-          { headers: { 'Content-Type': 'application/json' }, status: 500 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 500 
+          }
         )
       }
       
@@ -212,13 +270,24 @@ async function handleGetMember(req, supabaseClient) {
     // Return the member with associated data
     return new Response(
       JSON.stringify(responseData),
-      { headers: { 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        } 
+      }
     )
   } catch (error) {
     console.log(`[MEMBER-GET] ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 }
@@ -239,7 +308,13 @@ async function handleCreateMember(req, supabaseClient) {
       console.log(`[MEMBER-POST] Missing member name - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Member name is required' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       )
     }
 
@@ -247,7 +322,13 @@ async function handleCreateMember(req, supabaseClient) {
       console.log(`[MEMBER-POST] Invalid clubs field - returning 400`);
       return new Response(
         JSON.stringify({ error: 'The clubs field must be an array with at least one club ID' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       )
     }
 
@@ -276,7 +357,13 @@ async function handleCreateMember(req, supabaseClient) {
         console.log(`[MEMBER-POST] Failed to generate ID - returning 500`);
         return new Response(
           JSON.stringify({ error: `Failed to generate ID: ${idError.message}` }),
-          { headers: { 'Content-Type': 'application/json' }, status: 500 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 500 
+          }
         )
       }
       
@@ -316,7 +403,13 @@ async function handleCreateMember(req, supabaseClient) {
       console.log(`[MEMBER-POST] Member insert failed - returning 500`);
       return new Response(
         JSON.stringify({ error: memberError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -350,7 +443,13 @@ async function handleCreateMember(req, supabaseClient) {
             message: "Member created but failed to verify clubs",
             member: memberData[0]
           }),
-          { headers: { 'Content-Type': 'application/json' }, status: 500 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 500 
+          }
         )
       }
 
@@ -372,7 +471,13 @@ async function handleCreateMember(req, supabaseClient) {
             message: "Member created but not associated with all clubs",
             member: memberData[0]
           }),
-          { headers: { 'Content-Type': 'application/json' }, status: 400 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 400 
+          }
         )
       }
 
@@ -402,7 +507,13 @@ async function handleCreateMember(req, supabaseClient) {
             message: "Member created but failed to associate with clubs",
             member: memberData[0]
           }),
-          { headers: { 'Content-Type': 'application/json' }, status: 500 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 500 
+          }
         )
       }
     } else {
@@ -426,14 +537,25 @@ async function handleCreateMember(req, supabaseClient) {
 
     return new Response(
       JSON.stringify(responseData),
-      { headers: { 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        } 
+      }
     )
     
   } catch (error) {
     console.log(`[MEMBER-POST] ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 }
@@ -454,7 +576,13 @@ async function handleUpdateMember(req, supabaseClient) {
       console.log(`[MEMBER-PUT] Missing member ID - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Member ID is required' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       )
     }
 
@@ -475,7 +603,13 @@ async function handleUpdateMember(req, supabaseClient) {
       console.log(`[MEMBER-PUT] Member not found - returning 404`);
       return new Response(
         JSON.stringify({ error: 'Member not found' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 404 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 404 
+        }
       )
     }
 
@@ -513,7 +647,13 @@ async function handleUpdateMember(req, supabaseClient) {
         console.log(`[MEMBER-PUT] Member update failed - returning 500`);
         return new Response(
           JSON.stringify({ error: updateError.message }),
-          { headers: { 'Content-Type': 'application/json' }, status: 500 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 500 
+          }
         )
       }
 
@@ -535,7 +675,13 @@ async function handleUpdateMember(req, supabaseClient) {
             message: "Some member fields updated but clubs not modified",
             member: updatedMember
           }),
-          { headers: { 'Content-Type': 'application/json' }, status: 400 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 400 
+          }
         )
       }
 
@@ -561,7 +707,13 @@ async function handleUpdateMember(req, supabaseClient) {
             message: "Member updated but failed to retrieve existing club associations",
             member: updatedMember
           }),
-          { headers: { 'Content-Type': 'application/json' }, status: 500 }
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 500 
+          }
         )
       }
 
@@ -604,7 +756,13 @@ async function handleUpdateMember(req, supabaseClient) {
               message: "Member updated but failed to verify club IDs",
               member: updatedMember
             }),
-            { headers: { 'Content-Type': 'application/json' }, status: 500 }
+            { 
+              headers: { 
+                'Content-Type': 'application/json',
+                ...corsHeaders 
+              }, 
+              status: 500 
+            }
           )
         }
 
@@ -625,7 +783,13 @@ async function handleUpdateMember(req, supabaseClient) {
               message: "Member updated but clubs not completely modified",
               member: updatedMember
             }),
-            { headers: { 'Content-Type': 'application/json' }, status: 400 }
+            { 
+              headers: { 
+                'Content-Type': 'application/json',
+                ...corsHeaders 
+              }, 
+              status: 400 
+            }
           )
         }
 
@@ -656,7 +820,13 @@ async function handleUpdateMember(req, supabaseClient) {
                 message: "Member updated but failed to add new club associations",
                 member: updatedMember
               }),
-              { headers: { 'Content-Type': 'application/json' }, status: 500 }
+              { 
+                headers: { 
+                  'Content-Type': 'application/json',
+                  ...corsHeaders 
+                }, 
+                status: 500 
+              }
             )
           }
           
@@ -688,7 +858,13 @@ async function handleUpdateMember(req, supabaseClient) {
               message: "Member updated but failed to remove some club associations",
               member: updatedMember
             }),
-            { headers: { 'Content-Type': 'application/json' }, status: 500 }
+            { 
+              headers: { 
+                'Content-Type': 'application/json',
+                ...corsHeaders 
+              }, 
+              status: 500 
+            }
           )
         }
         
@@ -703,7 +879,12 @@ async function handleUpdateMember(req, supabaseClient) {
       console.log(`[MEMBER-PUT] No changes to apply`);
       return new Response(
         JSON.stringify({ message: "No changes to apply" }),
-        { headers: { 'Content-Type': 'application/json' } }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          } 
+        }
       )
     }
 
@@ -722,14 +903,25 @@ async function handleUpdateMember(req, supabaseClient) {
 
     return new Response(
       JSON.stringify(responseData),
-      { headers: { 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        } 
+      }
     )
     
   } catch (error) {
     console.log(`[MEMBER-PUT] ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 }
@@ -751,7 +943,13 @@ async function handleDeleteMember(req, supabaseClient) {
       console.log(`[MEMBER-DELETE] Missing member ID - returning 400`);
       return new Response(
         JSON.stringify({ error: 'Member ID is required' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 400 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 400 
+        }
       )
     }
 
@@ -772,7 +970,13 @@ async function handleDeleteMember(req, supabaseClient) {
       console.log(`[MEMBER-DELETE] Member not found - returning 404`);
       return new Response(
         JSON.stringify({ error: 'Member not found' }),
-        { headers: { 'Content-Type': 'application/json' }, status: 404 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 404 
+        }
       )
     }
 
@@ -795,7 +999,13 @@ async function handleDeleteMember(req, supabaseClient) {
       console.log(`[MEMBER-DELETE] Failed to delete shame list entries - returning 500`);
       return new Response(
         JSON.stringify({ error: `Failed to delete from shame list: ${shameError.message}` }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -815,7 +1025,13 @@ async function handleDeleteMember(req, supabaseClient) {
       console.log(`[MEMBER-DELETE] Failed to delete club associations - returning 500`);
       return new Response(
         JSON.stringify({ error: `Failed to delete club associations: ${associationError.message}` }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -835,7 +1051,13 @@ async function handleDeleteMember(req, supabaseClient) {
       console.log(`[MEMBER-DELETE] Member deletion failed - returning 500`);
       return new Response(
         JSON.stringify({ error: deleteError.message }),
-        { headers: { 'Content-Type': 'application/json' }, status: 500 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
       )
     }
 
@@ -846,14 +1068,25 @@ async function handleDeleteMember(req, supabaseClient) {
         success: true, 
         message: "Member deleted successfully" 
       }),
-      { headers: { 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        } 
+      }
     )
     
   } catch (error) {
     console.log(`[MEMBER-DELETE] ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders 
+        }, 
+        status: 500 
+      }
     )
   }
 }
