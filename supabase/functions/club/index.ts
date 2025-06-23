@@ -281,76 +281,60 @@ async function getFullClubDetails(supabaseClient, clubId, serverId) {
     )
   }
 
-  // If no members, return the club with empty members array
-  if (!memberClubsData.length) {
-    console.log(`[CLUB-GET] No members found - returning minimal club data`);
-    return new Response(
-      JSON.stringify({
-        id: clubData.id,
-        name: clubData.name,
-        discord_channel: clubData.discord_channel,
-        server_id: clubData.server_id,
-        members: [],
-        active_session: null,
-        past_sessions: [],
-        shame_list: []
-      }),
-      { 
-        headers: { 
-          'Content-Type': 'application/json',
-          ...corsHeaders 
-        } 
-      }
+  // Process members (might be empty, that's fine)
+  let membersWithClubs = []
+  
+  if (memberClubsData && memberClubsData.length > 0) {
+    // Extract member IDs
+    const memberIds = memberClubsData.map(mc => mc.member_id)
+    console.log(`[CLUB-GET] Found member IDs:`, memberIds);
+
+    // Get member details
+    console.log(`[CLUB-GET] Querying members table for IDs:`, memberIds);
+    const { data: membersData, error: membersError } = await supabaseClient
+      .from("members")
+      .select("*")
+      .in("id", memberIds)
+
+    console.log(`[CLUB-GET] Members query result:`, { count: membersData?.length || 0, error: membersError?.message });
+
+    if (membersError) {
+      console.log(`[CLUB-GET] Members query failed - returning 500`);
+      return new Response(
+        JSON.stringify({ error: membersError.message }),
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 500 
+        }
+      )
+    }
+
+    // Get club memberships for each member
+    console.log(`[CLUB-GET] Building member details with club associations...`);
+    membersWithClubs = await Promise.all(
+      membersData.map(async (member) => {
+        const { data: memberClubs } = await supabaseClient
+          .from("memberclubs")
+          .select("club_id")
+          .eq("member_id", member.id)
+
+        return {
+          id: member.id,
+          name: member.name,
+          points: member.points,
+          books_read: member.books_read,
+          clubs: memberClubs?.map(mc => mc.club_id) || []
+        }
+      })
     )
+  } else {
+    console.log(`[CLUB-GET] No members found - will continue with empty members array`);
   }
 
-  // Extract member IDs
-  const memberIds = memberClubsData.map(mc => mc.member_id)
-  console.log(`[CLUB-GET] Found member IDs:`, memberIds);
-
-  // Get member details
-  console.log(`[CLUB-GET] Querying members table for IDs:`, memberIds);
-  const { data: membersData, error: membersError } = await supabaseClient
-    .from("members")
-    .select("*")
-    .in("id", memberIds)
-
-  console.log(`[CLUB-GET] Members query result:`, { count: membersData?.length || 0, error: membersError?.message });
-
-  if (membersError) {
-    console.log(`[CLUB-GET] Members query failed - returning 500`);
-    return new Response(
-      JSON.stringify({ error: membersError.message }),
-      { 
-        headers: { 
-          'Content-Type': 'application/json',
-          ...corsHeaders 
-        }, 
-        status: 500 
-      }
-    )
-  }
-
-  // Get club memberships for each member
-  console.log(`[CLUB-GET] Building member details with club associations...`);
-  const membersWithClubs = await Promise.all(
-    membersData.map(async (member) => {
-      const { data: memberClubs } = await supabaseClient
-        .from("memberclubs")
-        .select("club_id")
-        .eq("member_id", member.id)
-
-      return {
-        id: member.id,
-        name: member.name,
-        points: member.points,
-        books_read: member.books_read,
-        clubs: memberClubs?.map(mc => mc.club_id) || []
-      }
-    })
-  )
-
-  // Get active session for this club
+  // Get active session for this club (regardless of member count)
   console.log(`[CLUB-GET] Querying sessions for club_id: "${clubId}" (type: ${typeof clubId})`);
   const { data: sessionsData, error: sessionsError } = await supabaseClient
     .from("sessions")
@@ -392,7 +376,7 @@ async function getFullClubDetails(supabaseClient, clubId, serverId) {
   }
 
   let active_session = null
-  if (sessionsData.length > 0) {
+  if (sessionsData && sessionsData.length > 0) {
     console.log(`[CLUB-GET] Found active session - building session details...`);
     const session = sessionsData[0]
 
