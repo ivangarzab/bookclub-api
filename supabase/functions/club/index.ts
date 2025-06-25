@@ -927,8 +927,17 @@ async function handleUpdateClub(req, supabaseClient) {
 
     console.log(`[CLUB-PUT] Update data prepared:`, updateData);
 
-    // If no fields to update
-    if (Object.keys(updateData).length === 0) {
+    // Check if we have either club fields to update OR shame_list updates
+    const hasClubUpdates = Object.keys(updateData).length > 0
+    const hasShameListUpdates = data.shame_list !== undefined
+
+    console.log(`[CLUB-PUT] Update validation:`, { 
+      hasClubUpdates, 
+      hasShameListUpdates,
+      totalUpdates: hasClubUpdates || hasShameListUpdates
+    });
+
+    if (!hasClubUpdates && !hasShameListUpdates) {
       console.log(`[CLUB-PUT] No fields to update - returning 400`);
       return new Response(
         JSON.stringify({ error: 'No fields to update' }),
@@ -967,34 +976,65 @@ async function handleUpdateClub(req, supabaseClient) {
       )
     }
 
-    // Update club
-    console.log(`[CLUB-PUT] Updating club with data:`, updateData);
-    const { data: clubData, error: updateError } = await supabaseClient
-      .from("clubs")
-      .update(updateData)
-      .eq("id", data.id)
-      .eq("server_id", data.server_id)
-      .select()
+    // Update club table only if we have club fields to update
+    let clubData = null
+    if (hasClubUpdates) {
+      console.log(`[CLUB-PUT] Updating club with data:`, updateData);
+      const { data: clubUpdateResult, error: updateError } = await supabaseClient
+        .from("clubs")
+        .update(updateData)
+        .eq("id", data.id)
+        .eq("server_id", data.server_id)
+        .select()
 
-    console.log(`[CLUB-PUT] Club update result:`, { success: !!clubData, error: updateError?.message });
+      console.log(`[CLUB-PUT] Club update result:`, { success: !!clubUpdateResult, error: updateError?.message });
 
-    if (updateError) {
-      console.log(`[CLUB-PUT] Club update failed - returning 500`);
-      return new Response(
-        JSON.stringify({ error: updateError.message }),
-        { 
-          headers: { 
-            'Content-Type': 'application/json',
-            ...corsHeaders 
-          }, 
-          status: 500 
-        }
-      )
+      if (updateError) {
+        console.log(`[CLUB-PUT] Club update failed - returning 500`);
+        return new Response(
+          JSON.stringify({ error: updateError.message }),
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 500 
+          }
+        )
+      }
+      
+      clubData = clubUpdateResult
+    } else {
+      console.log(`[CLUB-PUT] No club fields to update - skipping club table update`);
+      
+      // Get current club data for response
+      const { data: currentClub, error: getCurrentError } = await supabaseClient
+        .from("clubs")
+        .select("*")
+        .eq("id", data.id)
+        .eq("server_id", data.server_id)
+        .single()
+
+      if (getCurrentError) {
+        console.log(`[CLUB-PUT] Failed to get current club data - returning 500`);
+        return new Response(
+          JSON.stringify({ error: getCurrentError.message }),
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            }, 
+            status: 500 
+          }
+        )
+      }
+      
+      clubData = [currentClub]
     }
 
     // Handle shame_list updates if provided
     let shame_list_updated = false
-    if (data.shame_list !== undefined) {
+    if (hasShameListUpdates) {
       console.log(`[CLUB-PUT] Processing shame list update:`, data.shame_list);
       
       if (!Array.isArray(data.shame_list)) {
@@ -1002,8 +1042,8 @@ async function handleUpdateClub(req, supabaseClient) {
         return new Response(
           JSON.stringify({ 
             error: 'Shame list must be an array',
-            partial_success: true,
-            message: "Club was updated but shame list was not modified",
+            partial_success: hasClubUpdates,
+            message: hasClubUpdates ? "Club was updated but shame list was not modified" : "Invalid shame list format",
             club: clubData[0]
           }),
           { 
@@ -1034,8 +1074,8 @@ async function handleUpdateClub(req, supabaseClient) {
         return new Response(
           JSON.stringify({ 
             error: get_shame_error.message,
-            partial_success: true,
-            message: "Club was updated but could not retrieve shame list",
+            partial_success: hasClubUpdates,
+            message: hasClubUpdates ? "Club was updated but could not retrieve shame list" : "Could not retrieve shame list",
             club: clubData[0]
           }),
           { 
@@ -1119,6 +1159,7 @@ async function handleUpdateClub(req, supabaseClient) {
 
     console.log(`[CLUB-PUT] Club update completed successfully:`, {
       club: clubData[0],
+      club_updated: hasClubUpdates,
       shame_list_updated: shame_list_updated
     });
 
@@ -1127,6 +1168,7 @@ async function handleUpdateClub(req, supabaseClient) {
         success: true, 
         message: "Club updated successfully",
         club: clubData[0],
+        club_updated: hasClubUpdates,
         shame_list_updated: shame_list_updated
       }),
       { 
