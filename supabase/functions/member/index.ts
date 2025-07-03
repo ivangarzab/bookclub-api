@@ -72,13 +72,15 @@ async function handleGetMember(req, supabaseClient) {
     // Get URL parameters
     const url = new URL(req.url);
     const memberId = url.searchParams.get('id');
+    const userId = url.searchParams.get('user_id');
 
-    console.log(`[MEMBER-GET] Request parameters:`, { memberId });
+    console.log(`[MEMBER-GET] Request parameters:`, { memberId, userId });
 
-    if (!memberId) {
-      console.log(`[MEMBER-GET] Missing member ID - returning 400`);
+    // Validate that we have either id or user_id
+    if (!memberId && !userId) {
+      console.log(`[MEMBER-GET] Missing both member ID and user ID - returning 400`);
       return new Response(
-        JSON.stringify({ error: 'Member ID is required' }),
+        JSON.stringify({ error: 'Either Member ID or User ID is required' }),
         { 
           headers: { 
             'Content-Type': 'application/json',
@@ -89,13 +91,32 @@ async function handleGetMember(req, supabaseClient) {
       );
     }
 
-    // Get member data
-    console.log(`[MEMBER-GET] Querying member: "${memberId}"`);
-    const { data: memberData, error: memberError } = await supabaseClient
-      .from("members")
-      .select("*")
-      .eq("id", memberId)
-      .single()
+    let memberData;
+    let memberError;
+
+    if (userId) {
+      // Search by user_id (new functionality)
+      console.log(`[MEMBER-GET] Querying member by user_id: "${userId}"`);
+      const result = await supabaseClient
+        .from("members")
+        .select("*")
+        .eq("user_id", userId)
+        .single()
+      
+      memberData = result.data;
+      memberError = result.error;
+    } else {
+      // Search by member id (existing functionality)
+      console.log(`[MEMBER-GET] Querying member by id: "${memberId}"`);
+      const result = await supabaseClient
+        .from("members")
+        .select("*")
+        .eq("id", memberId)
+        .single()
+      
+      memberData = result.data;
+      memberError = result.error;
+    }
 
     console.log(`[MEMBER-GET] Member query result:`, { 
       found: !!memberData, 
@@ -104,7 +125,9 @@ async function handleGetMember(req, supabaseClient) {
         id: memberData.id, 
         name: memberData.name, 
         points: memberData.points,
-        books_read: memberData.books_read 
+        books_read: memberData.books_read,
+        user_id: memberData.user_id,
+        role: memberData.role,
       } : null
     });
 
@@ -123,11 +146,11 @@ async function handleGetMember(req, supabaseClient) {
     }
 
     // Get clubs this member belongs to
-    console.log(`[MEMBER-GET] Getting club associations for member: "${memberId}"`);
+    console.log(`[MEMBER-GET] Getting club associations for member: "${memberData.id}"`);
     const { data: memberClubs, error: memberClubsError } = await supabaseClient
       .from("memberclubs")
       .select("club_id")
-      .eq("member_id", memberId)
+      .eq("member_id", memberData.id)
 
     console.log(`[MEMBER-GET] Member clubs query result:`, { 
       count: memberClubs?.length || 0, 
@@ -187,11 +210,11 @@ async function handleGetMember(req, supabaseClient) {
     }
 
     // Get shame list entries for this member (now from club level)
-    console.log(`[MEMBER-GET] Getting shame list entries for member: "${memberId}"`);
+    console.log(`[MEMBER-GET] Getting shame list entries for member: "${memberData.id}"`);
     const { data: shameData, error: shameError } = await supabaseClient
       .from("shamelist")
       .select("club_id")
-      .eq("member_id", memberId)
+      .eq("member_id", memberData.id)
 
     console.log(`[MEMBER-GET] Shame list query result:`, { 
       count: shameData?.length || 0, 
@@ -255,6 +278,8 @@ async function handleGetMember(req, supabaseClient) {
       name: memberData.name,
       points: memberData.points,
       books_read: memberData.books_read,
+      user_id: memberData.user_id,
+      role: memberData.role,
       clubs: clubs,
       shame_clubs: shameClubs
     };
@@ -262,6 +287,8 @@ async function handleGetMember(req, supabaseClient) {
     console.log(`[MEMBER-GET] Member details completed - returning data:`, {
       member_id: responseData.id,
       member_name: responseData.name,
+      user_id: responseData.user_id,
+      role: responseData.role,
       clubs_count: responseData.clubs.length,
       shame_clubs_count: responseData.shame_clubs.length,
       points: responseData.points,
