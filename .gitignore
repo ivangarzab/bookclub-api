@@ -45,6 +45,9 @@ jspm_packages/
 tmp/
 temp/
 
+# Diff files
+*.diff
+
 # Supabase Functions deployments
 .branches/
 .temp/
