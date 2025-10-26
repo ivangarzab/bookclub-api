@@ -37,8 +37,8 @@ Your local API is now running at `http://localhost:54321` 🚀
 
 ### Technical Documentation
 - [Database Schema](supabase/migrations/DATABASE_SCHEMA.md) - Complete schema reference and migration guide
-- [Architecture Overview](ARCHITECTURE.md) - System design and multi-server architecture *(coming soon)*
-- [Development Guide](DEVELOPMENT_GUIDE.md) - Detailed workflow and troubleshooting *(coming soon)*
+- [Architecture Overview](docs/ARCHITECTURE.md) - System design and multi-server architecture *(coming soon)*
+- [Development Guide](docs/DEVELOPMENT_GUIDE.md) - Detailed workflow and troubleshooting *(coming soon)*
 
 ## Key Features
 
