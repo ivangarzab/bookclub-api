@@ -16,16 +16,16 @@ INSERT INTO Clubs (id, name, discord_channel, server_id) VALUES
 ('club-4', 'Mystery Readers', 555666777888999000, 1234567890123456789),
 ('club-5', 'Sci-Fi Enthusiasts', 111222333444555666, 9876543210987654321);
 
--- Insert sample members
-INSERT INTO Members (id, name, points, books_read) VALUES
-(1, 'Ivan Garza Bermea', 120, 8),
-(2, 'Monica M. Morales', 95, 6),
-(3, 'Marco Rivera', 150, 12),
-(4, 'Anacleto Longoria', 60, 4),
-(5, 'Joel Salinas', 200, 15),
-(6, 'Jorge Longoria', 75, 5),
-(7, 'Test User Alpha', 50, 3),
-(8, 'Test User Beta', 180, 11);
+-- Insert sample members (now with user_id and role)
+INSERT INTO Members (id, name, points, books_read, user_id, role) VALUES
+(1, 'Ivan Garza', 250, 20, '550e8400-e29b-41d4-a716-446655440000', 'admin'),
+(2, 'Monica Morales', 120, 8, NULL, 'member'),
+(3, 'Marco Rivera', 150, 12, NULL, 'member'),
+(4, 'Anacleto Longoria', 60, 4, NULL, 'member'),
+(5, 'Joel Salinas', 200, 15, '550e8400-e29b-41d4-a716-446655440001', 'admin'),
+(6, 'Jorge Longoria', 75, 5, NULL, 'member'),
+(7, 'Test User Alpha', 50, 3, '550e8400-e29b-41d4-a716-446655440002', 'member'),
+(8, 'Test User Beta', 180, 11, '550e8400-e29b-41d4-a716-446655440003', 'member');
 
 -- Connect members to clubs
 INSERT INTO MemberClubs (member_id, club_id) VALUES
@@ -48,8 +48,8 @@ INSERT INTO MemberClubs (member_id, club_id) VALUES
 
 -- Insert sample books
 INSERT INTO Books (id, title, author, edition, year, ISBN) VALUES
-(1, 'The Republic', 'Plato', 'Deluxe Edition', -2500, '978-0441172719'),
-(2, 'Capital: Vol. 1', 'Karl Marx', 'Reprint', 1864, '978-0062693662'),
+(1, 'The Republic', 'Plato', 'Reeve Edition', -380, '978-0872207363'),
+(2, 'Das Kapital', 'Karl Marx', 'Penguin Classics', 1867, '978-0140445688'),
 (3, 'My Birth Day', 'Ivan Garza Bermea', 'Illustrated', 1992, '978-0618260300'),
 (4, 'Nicomachean Ethics', 'Aristotle', 'Mass Market Paperback', -2000, '978-0553293357'),
 (5, '1984', 'George Orwell', 'Eye Edition', 1948, '978-0062073488'),
