@@ -52,6 +52,9 @@ temp/
 .branches/
 .temp/
 
+# Diff files
+*.diff
+
 # Deno test coverage
 coverage/
 
