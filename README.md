@@ -37,6 +37,7 @@ Your local API is now running at `http://localhost:54321` 🚀
 
 ### Technical Documentation
 - [Database Schema](supabase/migrations/DATABASE_SCHEMA.md) - Complete schema reference and migration guide
+- [Testing Guide](TESTING.md) - Comprehensive testing documentation and best practices
 - [Architecture Overview](docs/ARCHITECTURE.md) - System design and multi-server architecture *(coming soon)*
 - [Development Guide](docs/DEVELOPMENT_GUIDE.md) - Detailed workflow and troubleshooting *(coming soon)*
 
@@ -63,12 +64,15 @@ Your local API is now running at `http://localhost:54321` 🚀
 bookclub-api/
 ├── supabase/
 │   ├── functions/              # Edge Functions (API endpoints)
-│   │   ├── club/              # Club management
-│   │   ├── member/            # Member management
-│   │   ├── session/           # Session management
-│   │   └── server/            # Server registration
+│   │   ├── _shared/           # Shared test utilities
+│   │   ├── club/              # Club management + tests
+│   │   ├── member/            # Member management + tests
+│   │   ├── session/           # Session management + tests
+│   │   └── server/            # Server registration + tests
 │   └── migrations/            # Database migrations
 │       └── DATABASE_SCHEMA.md # Schema documentation
+├── deno.jsonc                 # Deno configuration & test tasks
+├── TESTING.md                 # Testing guide
 ├── seed.sql                   # Sample data for local dev
 └── local-env-refresh.sh       # Quick environment reset script
 ```
@@ -77,7 +81,7 @@ bookclub-api/
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop) - For local Supabase
 - [Supabase CLI](https://supabase.com/docs/guides/cli) - Manage local environment
-- [Node.js](https://nodejs.org/) - For TypeScript support
+- [Deno](https://deno.land/) - For running edge functions and tests
 - [PostgreSQL Client](https://www.postgresql.org/download/) - Optional, for direct DB access
 
 ## Common Commands
@@ -88,6 +92,12 @@ supabase start                 # Start local Supabase
 supabase status                # Check status and get credentials
 supabase functions serve       # Serve functions locally
 supabase db reset              # Reset database with migrations
+
+# Testing
+deno task test                 # Run all tests
+deno task test:watch           # Run tests in watch mode
+deno task test:club            # Test specific function
+deno task test:coverage        # Generate coverage report
 
 # Database
 supabase db pull               # Pull schema from production
@@ -120,8 +130,10 @@ supabase functions deploy club # Deploy specific function
 
 1. Create a new branch for your changes
 2. Update relevant documentation alongside code changes
-3. Test locally with `supabase db reset` and `supabase functions serve`
-4. Submit PR with clear description
+3. Write tests for new functionality
+4. Run the test suite: `deno task test`
+5. Test locally with `supabase db reset` and `supabase functions serve`
+6. Submit PR with clear description
 
 ## License
 

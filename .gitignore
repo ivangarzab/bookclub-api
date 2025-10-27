@@ -52,6 +52,9 @@ temp/
 .branches/
 .temp/
 
+# Deno test coverage
+coverage/
+
 # Personal notes or scripts
 notes/
 personal/

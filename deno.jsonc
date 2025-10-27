@@ -1,0 +1,41 @@
+{
+  // Deno configuration for the Book Club API project
+  "tasks": {
+    // Test tasks
+    "test": "deno test --allow-net --allow-env",
+    "test:watch": "deno test --allow-net --allow-env --watch",
+    "test:coverage": "deno test --allow-net --allow-env --coverage=coverage",
+    "test:server": "deno test supabase/functions/server/index.test.ts --allow-net --allow-env",
+    "test:club": "deno test supabase/functions/club/index.test.ts --allow-net --allow-env",
+    "test:member": "deno test supabase/functions/member/index.test.ts --allow-net --allow-env",
+    "test:session": "deno test supabase/functions/session/index.test.ts --allow-net --allow-env"
+  },
+  "compilerOptions": {
+    "lib": ["deno.window"],
+    "strict": true
+  },
+  "fmt": {
+    "files": {
+      "include": ["supabase/functions/"]
+    },
+    "options": {
+      "useTabs": false,
+      "lineWidth": 100,
+      "indentWidth": 2,
+      "singleQuote": true,
+      "proseWrap": "preserve"
+    }
+  },
+  "lint": {
+    "files": {
+      "include": ["supabase/functions/"]
+    },
+    "rules": {
+      "tags": ["recommended"],
+      "exclude": ["no-unused-vars"]
+    }
+  },
+  "test": {
+    "include": ["supabase/functions/**/*.test.ts"]
+  }
+}
