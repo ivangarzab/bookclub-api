@@ -1,5 +1,8 @@
 # Book Club API
 
+[![Tests](https://github.com/ivangarzab/bookclub-api/actions/workflows/test.yml/badge.svg)](https://github.com/ivangarzab/bookclub-api/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/ivangarzab/bookclub-api/branch/main/graph/badge.svg)](https://codecov.io/gh/ivangarzab/bookclub-api)
+
 Supabase Edge Functions API for managing book clubs across multiple Discord servers with authentication integration.
 
 ## Quick Start
