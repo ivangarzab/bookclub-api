@@ -156,6 +156,71 @@ export function createMockSupabaseClient(db: MockDatabase): Partial<SupabaseClie
         return chainable;
       },
 
+      upsert(data: any) {
+        const upsertData = Array.isArray(data) ? data : [data];
+        const result: any[] = [];
+
+        for (const item of upsertData) {
+          let newItem = { ...item };
+
+          // Check if item already exists
+          const collection = getCollection(table);
+          let existingItem = null;
+
+          if (collection instanceof Map && item.id !== undefined) {
+            existingItem = collection.get(item.id);
+          }
+
+          // If exists, update it; otherwise insert it
+          if (existingItem) {
+            const updated = { ...existingItem, ...newItem };
+            updateItem(table, existingItem, updated);
+            result.push(updated);
+          } else {
+            // Handle auto-generated IDs for books
+            if (table === 'books' && !item.id) {
+              newItem.id = db.getNextBookId();
+            }
+
+            // Insert the new item
+            switch (table) {
+              case 'servers':
+                db.servers.set(newItem.id, newItem);
+                break;
+              case 'clubs':
+                db.clubs.set(newItem.id, newItem);
+                break;
+              case 'members':
+                db.members.set(newItem.id, newItem);
+                break;
+              case 'sessions':
+                db.sessions.set(newItem.id, newItem);
+                break;
+              case 'books':
+                db.books.set(newItem.id, newItem);
+                break;
+              case 'discussions':
+                db.discussions.set(newItem.id, newItem);
+                break;
+              case 'memberclubs':
+                db.memberClubs.push(newItem);
+                break;
+              case 'shamelist':
+                db.shameList.push(newItem);
+                break;
+            }
+            result.push(newItem);
+          }
+        }
+
+        // Return a promise-like object
+        return {
+          data: result,
+          error: null,
+          then: (resolve: any) => resolve({ data: result, error: null })
+        };
+      },
+
       delete() {
         const collection = getCollection(table);
         const itemsToDelete = getFilteredItems(table, query._filters, collection);
@@ -238,7 +303,10 @@ export function createMockSupabaseClient(db: MockDatabase): Partial<SupabaseClie
 
     for (const filter of filters) {
       if (filter.operator === 'eq') {
-        items = items.filter(item => item[filter.field] === filter.value);
+        items = items.filter(item => {
+          // Use loose equality to handle string/number mismatches (like real Supabase)
+          return item[filter.field] == filter.value;
+        });
       } else if (filter.operator === 'in') {
         items = items.filter(item => filter.value.includes(item[filter.field]));
       }
