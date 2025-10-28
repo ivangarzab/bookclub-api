@@ -4,7 +4,23 @@ This document explains how to run and write tests for the Book Club API edge fun
 
 ## Overview
 
-The test suite provides comprehensive coverage for all four Supabase Edge Functions:
+The project includes **two types of tests**:
+
+### 1. **Unit/Mock Tests** (Fast, No Dependencies)
+- Located in `supabase/functions/*/index.test.ts`
+- Use mock Supabase client (in-memory database)
+- Run in **~120ms** for 72 tests
+- Perfect for **quick feedback during development**
+- No local Supabase required
+
+### 2. **Integration Tests** (Real Database)
+- Located in `tests/integration/*.test.ts`
+- Hit real Supabase Edge Functions and database
+- Require **local Supabase running**
+- Perfect for **pre-commit validation**
+- Catch real-world issues
+
+All tests cover four Supabase Edge Functions:
 - `server` - Discord server management
 - `club` - Book club CRUD operations
 - `member` - Member management
@@ -12,10 +28,10 @@ The test suite provides comprehensive coverage for all four Supabase Edge Functi
 
 ## Running Tests
 
-### All Tests
+### Quick Unit/Mock Tests (Development)
 
 ```bash
-# Run all tests
+# Run all unit tests (fast, no dependencies)
 deno task test
 
 # Run with file watching (auto-rerun on changes)
@@ -23,23 +39,71 @@ deno task test:watch
 
 # Run with coverage report
 deno task test:coverage
-```
 
-### Individual Function Tests
-
-```bash
-# Test server function only
+# Test individual functions
 deno task test:server
-
-# Test club function only
 deno task test:club
-
-# Test member function only
 deno task test:member
-
-# Test session function only
 deno task test:session
 ```
+
+### Integration Tests (Pre-Commit)
+
+**⚠️ Requires local Supabase running:** `supabase start`
+
+```bash
+# Run all integration tests
+deno task test:integration
+
+# Test individual functions
+deno task test:integration:server
+deno task test:integration:club
+deno task test:integration:member
+deno task test:integration:session
+
+# Run BOTH unit and integration tests
+deno task test:all
+```
+
+### Setup for Integration Tests
+
+```bash
+# 1. Start local Supabase
+supabase start
+
+# 2. Ensure functions are deployed locally
+supabase functions serve
+
+# 3. Run integration tests (in another terminal)
+deno task test:integration
+```
+
+### Running Tests in VS Code
+
+You can run tests directly from VS Code using the Command Palette:
+
+1. Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
+2. Type "Tasks: Run Task"
+3. Select one of the test tasks:
+
+**Unit Test Tasks:**
+- `Test: All Functions` - Run all 72 unit tests (~120ms)
+- `Test: Watch Mode` - Auto-rerun tests on file changes
+- `Test: Server Function` - Run server unit tests only
+- `Test: Club Function` - Run club unit tests only
+- `Test: Member Function` - Run member unit tests only
+- `Test: Session Function` - Run session unit tests only
+- `Test: Coverage Report` - Generate coverage report
+
+**Integration Test Tasks:**
+- `Test: All Integration Tests` - Run all 30 integration tests (~2s)
+- `Test: Integration - Server` - Run server integration tests only
+- `Test: Integration - Club` - Run club integration tests only
+- `Test: Integration - Member` - Run member integration tests only
+- `Test: Integration - Session` - Run session integration tests only
+- `Test: All (Unit + Integration)` - Run all 102 tests
+
+**Note:** Integration tests require local Supabase to be running (`supabase start` and `supabase functions serve`).
 
 ### Direct Deno Commands
 
@@ -59,24 +123,38 @@ deno test --allow-net --allow-env --filter "Club - POST" supabase/functions/
 ### Directory Layout
 
 ```
-supabase/functions/
-├── _shared/                    # Shared test utilities
-│   ├── test-utils.ts          # Helper functions for testing
-│   ├── mock-supabase.ts       # Mock Supabase client
-│   └── test-fixtures.ts       # Sample test data
-├── server/
-│   ├── index.ts               # Server function
-│   └── index.test.ts          # Server tests
-├── club/
-│   ├── index.ts               # Club function
-│   └── index.test.ts          # Club tests
-├── member/
-│   ├── index.ts               # Member function
-│   └── index.test.ts          # Member tests
-└── session/
-    ├── index.ts               # Session function
-    └── index.test.ts          # Session tests
+bookclub-api/
+├── supabase/functions/         # Unit/Mock tests
+│   ├── _shared/
+│   │   ├── test-utils.ts      # Mock test helpers
+│   │   ├── mock-supabase.ts   # Mock Supabase client
+│   │   └── test-fixtures.ts   # Mock test data
+│   ├── server/
+│   │   ├── index.ts
+│   │   └── index.test.ts      # 17 unit tests
+│   ├── club/
+│   │   ├── index.ts
+│   │   └── index.test.ts      # 22 unit tests
+│   ├── member/
+│   │   ├── index.ts
+│   │   └── index.test.ts      # 17 unit tests
+│   └── session/
+│       ├── index.ts
+│       └── index.test.ts      # 16 unit tests
+└── tests/
+    ├── integration/            # Integration tests
+    │   ├── setup.ts           # Integration test utilities
+    │   ├── server.test.ts     # 7 integration tests
+    │   ├── club.test.ts       # 8 integration tests
+    │   ├── member.test.ts     # 9 integration tests
+    │   └── session.test.ts    # 9 integration tests
+    └── fixtures/
+        └── test-data.sql      # Test database seed data
 ```
+
+**Total Test Coverage:**
+- **72 unit/mock tests** - Run in ~120ms, no dependencies
+- **33 integration tests** - Real database, requires local Supabase
 
 ### Test Categories
 
