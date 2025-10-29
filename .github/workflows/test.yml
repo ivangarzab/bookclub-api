@@ -39,13 +39,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-deno-
       
-      - name: Run unit tests
+      - name: 🧪 Run unit tests
         run: deno task test
       
-      - name: Generate coverage report
+      - name: 📊 Generate coverage report
         run: deno task test:coverage
       
-      - name: Upload coverage to Codecov
+      - name: 🆙 Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           files: ./coverage/coverage.lcov
@@ -73,7 +73,7 @@ jobs:
         with:
           version: latest
       
-      - name: Start Supabase
+      - name: 🗄️ Start Supabase
         run: |
           supabase init || true
           supabase start
@@ -84,13 +84,13 @@ jobs:
       - name: Verify Supabase is running
         run: supabase status
       
-      - name: Set environment variables
+      - name: ⚠️ Set environment variables
         run: |
           echo "SUPABASE_URL=http://127.0.0.1:54321" >> $GITHUB_ENV
           echo "SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0" >> $GITHUB_ENV
           echo "SUPABASE_FUNCTIONS_URL=http://127.0.0.1:54321/functions/v1" >> $GITHUB_ENV
       
-      - name: Run integration tests
+      - name: 🧪 Run integration tests
         run: deno task test:integration
         env:
           SUPABASE_URL: ${{ env.SUPABASE_URL }}
