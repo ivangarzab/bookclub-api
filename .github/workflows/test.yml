@@ -90,9 +90,6 @@ jobs:
       - name: Verify Supabase is running
         run: supabase status
       
-      - name: Apply database migrations
-        run: supabase db reset
-      
       - name: Set environment variables
         run: |
           echo "SUPABASE_URL=http://127.0.0.1:54321" >> $GITHUB_ENV
