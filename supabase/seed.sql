@@ -6,7 +6,7 @@
 INSERT INTO Servers (id, name) VALUES
 (1039326367428395038, 'Production Server'),
 (1234567890123456789, 'Test Server Alpha'),
-(9876543210987654321, 'Test Server Beta');
+(987654321098765432, 'Test Server Beta');
 
 -- Insert sample book clubs (now with server_id)
 INSERT INTO Clubs (id, name, discord_channel, server_id) VALUES
@@ -14,7 +14,7 @@ INSERT INTO Clubs (id, name, discord_channel, server_id) VALUES
 ('club-2', 'Blingers Pilingers', 876543210987654321, 1039326367428395038),
 ('club-3', 'Trifecta', 765432109876543210, 1234567890123456789),
 ('club-4', 'Mystery Readers', 555666777888999000, 1234567890123456789),
-('club-5', 'Sci-Fi Enthusiasts', 111222333444555666, 9876543210987654321);
+('club-5', 'Sci-Fi Enthusiasts', 111222333444555666, 987654321098765432);
 
 -- Insert sample members (now with user_id and role)
 INSERT INTO Members (id, name, points, books_read, user_id, role) VALUES
