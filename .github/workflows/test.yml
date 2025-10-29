@@ -60,12 +60,6 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Set environment variables
-        run: |
-            echo "SUPABASE_URL=http://127.0.0.1:54321" >> $GITHUB_ENV
-            echo "SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0" >> $GITHUB_ENV
-            echo "SUPABASE_FUNCTIONS_URL=http://127.0.0.1:54321/functions/v1" >> $GITHUB_ENV 
-
       - name: Checkout code
         uses: actions/checkout@v5
       
@@ -93,8 +87,7 @@ jobs:
       - name: Set environment variables
         run: |
           echo "SUPABASE_URL=http://127.0.0.1:54321" >> $GITHUB_ENV
-          ANON_KEY=$(supabase status --output json | jq -r '.anon_key')
-          echo "SUPABASE_ANON_KEY=$ANON_KEY" >> $GITHUB_ENV
+          echo "SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0" >> $GITHUB_ENV
           echo "SUPABASE_FUNCTIONS_URL=http://127.0.0.1:54321/functions/v1" >> $GITHUB_ENV
       
       - name: Run integration tests
