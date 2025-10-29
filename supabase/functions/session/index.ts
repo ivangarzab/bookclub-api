@@ -8,7 +8,10 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
 }
 
-serve(async (req) => {
+/**
+ * Main handler function - exported for testing
+ */
+export async function handler(req: Request, supabaseClient?: SupabaseClient): Promise<Response> {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -16,9 +19,9 @@ serve(async (req) => {
 
   try {
     console.log(`[SESSION] === New ${req.method} request received ===`);
-    
-    // Create a Supabase client with the Auth context of the function
-    const supabaseClient = createClient(
+
+    // Create Supabase client if not provided (for testing)
+    const client = supabaseClient || createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
@@ -27,40 +30,45 @@ serve(async (req) => {
     // Determine which operation to perform based on HTTP method
     switch (req.method) {
       case 'GET':
-        return await handleGetSession(req, supabaseClient);
+        return await handleGetSession(req, client);
       case 'POST':
-        return await handleCreateSession(req, supabaseClient);
+        return await handleCreateSession(req, client);
       case 'PUT':
-        return await handleUpdateSession(req, supabaseClient);
+        return await handleUpdateSession(req, client);
       case 'DELETE':
-        return await handleDeleteSession(req, supabaseClient);
+        return await handleDeleteSession(req, client);
       default:
         console.log(`[SESSION] Method not allowed: ${req.method}`);
         return new Response(
           JSON.stringify({ error: 'Method not allowed' }),
-          { 
-            headers: { 
+          {
+            headers: {
               'Content-Type': 'application/json',
-              ...corsHeaders 
-            }, 
-            status: 405 
+              ...corsHeaders
+            },
+            status: 405
           }
         );
     }
-  } catch (error) {
+  } catch (error: any) {
     console.log(`[SESSION] FATAL ERROR: ${error.message}`);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
-        headers: { 
+      {
+        headers: {
           'Content-Type': 'application/json',
-          ...corsHeaders 
-        }, 
-        status: 500 
+          ...corsHeaders
+        },
+        status: 500
       }
     )
   }
-})
+}
+
+// Start server (only when run directly, not when imported for testing)
+if (import.meta.main) {
+  serve((req) => handler(req));
+}
 
 /**
  * Handles GET requests to retrieve session details

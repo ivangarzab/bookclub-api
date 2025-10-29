@@ -52,6 +52,12 @@ temp/
 .branches/
 .temp/
 
+# Diff files
+*.diff
+
+# Deno test coverage
+coverage/
+
 # Personal notes or scripts
 notes/
 personal/

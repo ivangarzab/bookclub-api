@@ -1,0 +1,54 @@
+{
+  // Deno configuration for the Book Club API project
+  "tasks": {
+    // Unit/Mock test tasks
+    "test": "deno test --allow-net --allow-env --no-check supabase/functions/",
+    "test:watch": "deno test --allow-net --allow-env --no-check --watch supabase/functions/",
+    "test:coverage": "deno test --allow-net --allow-env --no-check --coverage=coverage supabase/functions/ && deno coverage coverage --include='supabase/functions/(server|club|member|session)/index.ts'",
+    "test:server": "deno test supabase/functions/server/index.test.ts --allow-net --allow-env",
+    "test:club": "deno test supabase/functions/club/index.test.ts --allow-net --allow-env",
+    "test:member": "deno test supabase/functions/member/index.test.ts --allow-net --allow-env",
+    "test:session": "deno test supabase/functions/session/index.test.ts --allow-net --allow-env",
+
+    // Integration test tasks (require local Supabase running)
+    "test:integration": "deno test --allow-net --allow-env tests/integration/",
+    "test:integration:server": "deno test tests/integration/server.test.ts --allow-net --allow-env",
+    "test:integration:club": "deno test tests/integration/club.test.ts --allow-net --allow-env",
+    "test:integration:member": "deno test tests/integration/member.test.ts --allow-net --allow-env",
+    "test:integration:session": "deno test tests/integration/session.test.ts --allow-net --allow-env",
+
+    // Run all tests (unit + integration)
+    "test:all": "deno task test && deno task test:integration"
+  },
+  "compilerOptions": {
+    "lib": ["deno.window"],
+    "strict": true
+  },
+  "fmt": {
+    "files": {
+      "include": ["supabase/functions/"]
+    },
+    "options": {
+      "useTabs": false,
+      "lineWidth": 100,
+      "indentWidth": 2,
+      "singleQuote": true,
+      "proseWrap": "preserve"
+    }
+  },
+  "lint": {
+    "files": {
+      "include": ["supabase/functions/"]
+    },
+    "rules": {
+      "tags": ["recommended"],
+      "exclude": ["no-unused-vars"]
+    }
+  },
+  "test": {
+    "include": [
+      "supabase/functions/**/*.test.ts",
+      "tests/integration/**/*.test.ts"
+    ]
+  }
+}
