@@ -66,6 +66,7 @@ We use conventional commits to auto-generate changelogs:
 - `server`: Server endpoint
 - `db`: Database migrations
 - `api`: General API changes
+- `cicd`: CI/CD scripts and automation
 
 ### Examples
 
