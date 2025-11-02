@@ -69,8 +69,8 @@ if [ "$2" = "--dry-run" ]; then
   echo "   git log --oneline --graph --all -10"
   echo ""
   echo "✨ If everything looks good:"
-  echo "   1. Delete dry run artifacts: git branch -D dryrun/$VERSION_NAME && git tag -d $VERSION_NAME"
-  echo "   2. Run for real: ./tools/release-process.sh $VERSION_NAME"
+  echo "   ./tools/cleanup-dryrun.sh $VERSION_NAME"
+  echo "   ./tools/release-process.sh $VERSION_NAME"
 else
   run_step "./tools/release/release-step3.sh" "Step 3: Push to Origin"
   

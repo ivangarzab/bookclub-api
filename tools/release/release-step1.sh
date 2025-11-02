@@ -46,8 +46,9 @@ git pull
 
 # Run tests BEFORE creating branch
 echo "🧪 Running tests..."
-if ! deno task test; then
-  echo "❌ Tests failed! Fix issues before releasing."
+if ! deno task test > /tmp/test-output.log 2>&1; then
+  echo "❌ Tests failed! Output:"
+  cat /tmp/test-output.log
   exit 1
 fi
 echo "✅ All tests passed"
