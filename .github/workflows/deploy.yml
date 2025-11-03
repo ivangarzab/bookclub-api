@@ -1,0 +1,74 @@
+name: Deploy on Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # Fetch all history for changelog generation
+      
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      
+      - name: Install Supabase CLI
+        run: |
+          npm install -g supabase
+      
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+      - name: Get previous tag
+        id: previous_tag
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 ${{ github.ref_name }}^ 2>/dev/null || echo "")
+          echo "PREVIOUS_TAG=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
+      
+      - name: Generate changelog
+        id: changelog
+        run: |
+          chmod +x tools/generate-changelog.sh
+          if [ -n "${{ steps.previous_tag.outputs.PREVIOUS_TAG }}" ]; then
+            ./tools/generate-changelog.sh ${{ steps.previous_tag.outputs.PREVIOUS_TAG }} ${{ steps.version.outputs.VERSION }} > changelog.md
+          else
+            echo "# ${{ steps.version.outputs.VERSION }}" > changelog.md
+            echo "" >> changelog.md
+            echo "Initial release of the Book Club API." >> changelog.md
+          fi
+          cat changelog.md
+      
+      - name: Deploy database migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+        run: |
+          supabase link --project-ref $SUPABASE_PROJECT_ID
+          supabase db push
+      
+      - name: Deploy edge functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+        run: |
+          supabase functions deploy --project-ref $SUPABASE_PROJECT_ID
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.VERSION }}
+          name: ${{ steps.version.outputs.VERSION }}
+          body_path: changelog.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

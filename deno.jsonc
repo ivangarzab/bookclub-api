@@ -42,7 +42,7 @@
     },
     "rules": {
       "tags": ["recommended"],
-      "exclude": ["no-unused-vars"]
+      "exclude": ["no-unused-vars", "no-explicit-any", "no-implicit-declare-namespace-export"]
     }
   },
   "test": {

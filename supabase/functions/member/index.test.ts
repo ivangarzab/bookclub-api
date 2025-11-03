@@ -235,3 +235,150 @@ Deno.test("Member - DELETE cascades to associations and shame list", async () =>
   assertEquals(db.memberClubs.length, 0);
   assertEquals(db.shameList.length, 0);
 });
+
+// Additional error path tests for better coverage
+
+Deno.test("Member - GET by user_id returns member", async () => {
+  const mockMemberWithUserId = {
+    id: 1,
+    name: "Test User",
+    points: 50,
+    books_read: 3,
+    user_id: "user-uuid-123",
+    role: "member"
+  };
+  db.members.set(mockMemberWithUserId.id, mockMemberWithUserId);
+
+  const req = createMockRequest('GET', `http://localhost/member?user_id=${mockMemberWithUserId.user_id}`);
+  const response = await handleRequest(req);
+
+  const body = await assertSuccessResponse(response);
+  assertEquals(body.id, mockMemberWithUserId.id);
+  assertEquals(body.name, mockMemberWithUserId.name);
+});
+
+Deno.test("Member - GET returns member with empty clubs list", async () => {
+  db.members.set(mockMember.id, mockMember);
+
+  const req = createMockRequest('GET', `http://localhost/member?id=${mockMember.id}`);
+  const response = await handleRequest(req);
+
+  const body = await assertSuccessResponse(response);
+  assertEquals(body.clubs, []);
+  assertEquals(body.shame_clubs, []);
+});
+
+Deno.test("Member - PUT returns 400 when clubs is not an array", async () => {
+  db.members.set(mockMember.id, mockMember);
+
+  const data = {
+    id: mockMember.id,
+    clubs: "not-an-array"
+  };
+  const req = createMockRequest('PUT', 'http://localhost/member', data);
+  const response = await handleRequest(req);
+
+  await assertErrorResponse(response, 400);
+});
+
+Deno.test("Member - DELETE returns 400 when id missing", async () => {
+  const req = createMockRequest('DELETE', 'http://localhost/member');
+  const response = await handleRequest(req);
+
+  await assertErrorResponse(response, 400);
+});
+
+Deno.test("Member - POST creates member with user_id and role", async () => {
+  setupTest();
+
+  const newMember = {
+    name: "New Member",
+    user_id: "user-123",
+    role: "admin",
+    points: 50,
+    books_read: 2
+  };
+
+  const req = createMockRequest('POST', 'http://localhost/member', newMember);
+  const response = await handleRequest(req);
+
+  const body = await assertSuccessResponse(response);
+  assertEquals(body.success, true);
+  assertEquals(body.member.name, "New Member");
+  assertExists(body.member.id);
+});
+
+Deno.test("Member - PUT updates points and books_read", async () => {
+  setupTest();
+  db.members.set(mockMember.id, { ...mockMember });
+
+  const updateData = {
+    id: mockMember.id,
+    points: 200,
+    books_read: 10
+  };
+
+  const req = createMockRequest('PUT', 'http://localhost/member', updateData);
+  const response = await handleRequest(req);
+
+  const body = await assertSuccessResponse(response);
+  assertEquals(body.success, true);
+  assertEquals(body.member.points, 200);
+  assertEquals(body.member.books_read, 10);
+});
+
+Deno.test("Member - GET returns 404 when member not found by user_id", async () => {
+  setupTest();
+
+  const req = createMockRequest('GET', 'http://localhost/member?user_id=nonexistent');
+  const response = await handleRequest(req);
+
+  await assertErrorResponse(response, 404, 'Not found');
+});
+
+Deno.test("Member - GET returns member with shame clubs", async () => {
+  setupTest();
+  db.members.set(mockMember.id, mockMember);
+  db.clubs.set(mockClub.id, mockClub);
+  db.shameList.push({ member_id: mockMember.id, club_id: mockClub.id });
+
+  const req = createMockRequest('GET', `http://localhost/member?id=${mockMember.id}`);
+  const response = await handleRequest(req);
+
+  const body = await assertSuccessResponse(response);
+  assertEquals(body.shame_clubs.length, 1);
+  assertEquals(body.shame_clubs[0].id, mockClub.id);
+});
+
+Deno.test("Member - POST creates member with minimal data", async () => {
+  setupTest();
+
+  const newMember = {
+    name: "Minimal Member"
+    // No points, books_read, user_id, or role
+  };
+
+  const req = createMockRequest('POST', 'http://localhost/member', newMember);
+  const response = await handleRequest(req);
+
+  const body = await assertSuccessResponse(response);
+  assertEquals(body.success, true);
+  assertEquals(body.member.name, "Minimal Member");
+});
+
+Deno.test("Member - PUT updates name only", async () => {
+  setupTest();
+  db.members.set(mockMember.id, { ...mockMember });
+
+  const updateData = {
+    id: mockMember.id,
+    name: "Updated Name"
+  };
+
+  const req = createMockRequest('PUT', 'http://localhost/member', updateData);
+  const response = await handleRequest(req);
+
+  const body = await assertSuccessResponse(response);
+  assertEquals(body.success, true);
+  assertEquals(body.member.name, "Updated Name");
+});

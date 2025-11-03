@@ -1,6 +1,6 @@
 // supabase/functions/session/index.ts - Updated for new schema with debug logs and CORS
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -53,7 +53,7 @@ export async function handler(req: Request, supabaseClient?: SupabaseClient): Pr
   } catch (error: any) {
     console.log(`[SESSION] FATAL ERROR: ${error.message}`);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       {
         headers: {
           'Content-Type': 'application/json',
@@ -73,7 +73,7 @@ if (import.meta.main) {
 /**
  * Handles GET requests to retrieve session details
  */
-async function handleGetSession(req, supabaseClient) {
+async function handleGetSession(req: Request, supabaseClient: SupabaseClient) {
   try {
     console.log(`[SESSION-GET] Starting handleGetSession`);
     
@@ -134,7 +134,7 @@ async function handleGetSession(req, supabaseClient) {
     console.log(`[SESSION-GET] Getting club info for club_id: "${sessionData.club_id}"`);
     const { data: clubData, error: clubError } = await supabaseClient
       .from("clubs")
-      .select("id, name, discord_channel")
+      .select("id, name, discord_channel::text")
       .eq("id", sessionData.club_id)
       .single()
 
@@ -243,7 +243,7 @@ async function handleGetSession(req, supabaseClient) {
 
     // Get member details for shame list
     const memberIds = shameListData.map(item => item.member_id);
-    let shameListMembers = [];
+    let shameListMembers: Array<Record<string, unknown>> = [];
     
     if (memberIds.length > 0) {
       console.log(`[SESSION-GET] Getting member details for shame list:`, memberIds);
@@ -321,9 +321,9 @@ async function handleGetSession(req, supabaseClient) {
       }
     )
   } catch (error) {
-    console.log(`[SESSION-GET] ERROR: ${error.message}`);
+    console.log(`[SESSION-GET] ERROR: ${(error as Error).message}`);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { 
         headers: { 
           'Content-Type': 'application/json',
@@ -338,7 +338,7 @@ async function handleGetSession(req, supabaseClient) {
 /**
  * Handles POST requests to create a new session
  */
-async function handleCreateSession(req, supabaseClient) {
+async function handleCreateSession(req: Request, supabaseClient: SupabaseClient) {
   try {
     console.log(`[SESSION-POST] Starting handleCreateSession`);
     
@@ -563,7 +563,7 @@ async function handleCreateSession(req, supabaseClient) {
     console.log(`[SESSION-POST] Getting full club data for response`);
     const { data: fullClubData, error: fullClubError } = await supabaseClient
       .from("clubs")
-      .select("id, name, discord_channel")
+      .select("id, name, discord_channel::text")
       .eq("id", data.club_id)
       .single()
 
@@ -614,9 +614,9 @@ async function handleCreateSession(req, supabaseClient) {
     )
     
   } catch (error) {
-    console.log(`[SESSION-POST] ERROR: ${error.message}`);
+    console.log(`[SESSION-POST] ERROR: ${(error as Error).message}`);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { 
         headers: { 
           'Content-Type': 'application/json',
@@ -631,7 +631,7 @@ async function handleCreateSession(req, supabaseClient) {
 /**
  * Handles PUT requests to update an existing session
  */
-async function handleUpdateSession(req, supabaseClient) {
+async function handleUpdateSession(req: Request, supabaseClient: SupabaseClient) {
   try {
     console.log(`[SESSION-PUT] Starting handleUpdateSession`);
     
@@ -768,7 +768,7 @@ async function handleUpdateSession(req, supabaseClient) {
     }
 
     // Update session data
-    const sessionUpdateData = {};
+    const sessionUpdateData: Record<string, unknown> = {};
     if (data.club_id !== undefined) {
       console.log(`[SESSION-PUT] Club ID update requested: "${data.club_id}"`);
       
@@ -915,7 +915,7 @@ async function handleUpdateSession(req, supabaseClient) {
             console.log(`[SESSION-PUT] Updating existing discussion: "${discussion.id}"`);
             
             // Update existing discussion
-            const updateData = {};
+            const updateData: Record<string, unknown> = {};
             if (discussion.title !== undefined) updateData.title = discussion.title;
             if (discussion.date !== undefined) updateData.date = discussion.date;
             if (discussion.location !== undefined) updateData.location = discussion.location;
@@ -1066,9 +1066,9 @@ async function handleUpdateSession(req, supabaseClient) {
     )
     
   } catch (error) {
-    console.log(`[SESSION-PUT] ERROR: ${error.message}`);
+    console.log(`[SESSION-PUT] ERROR: ${(error as Error).message}`);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { 
         headers: { 
           'Content-Type': 'application/json',
@@ -1083,7 +1083,7 @@ async function handleUpdateSession(req, supabaseClient) {
 /**
  * Handles DELETE requests to remove a session
  */
-async function handleDeleteSession(req, supabaseClient) {
+async function handleDeleteSession(req: Request, supabaseClient: SupabaseClient) {
   try {
     console.log(`[SESSION-DELETE] Starting handleDeleteSession`);
     
@@ -1237,9 +1237,9 @@ async function handleDeleteSession(req, supabaseClient) {
     )
     
   } catch (error) {
-    console.log(`[SESSION-DELETE] ERROR: ${error.message}`);
+    console.log(`[SESSION-DELETE] ERROR: ${(error as Error).message}`);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { 
         headers: { 
           'Content-Type': 'application/json',

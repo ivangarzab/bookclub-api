@@ -9,18 +9,18 @@ DELETE FROM shamelist WHERE club_id LIKE 'test-%';
 DELETE FROM memberclubs WHERE club_id LIKE 'test-%';
 DELETE FROM members WHERE name LIKE 'Test Member%';
 DELETE FROM clubs WHERE id LIKE 'test-%';
-DELETE FROM servers WHERE id LIKE 'test-%';
+DELETE FROM servers WHERE id >= 9999999999999999990;
 
 -- Insert test servers
 INSERT INTO servers (id, name) VALUES
-  ('test-server-1', 'Test Server 1'),
-  ('test-server-2', 'Test Server 2')
+  (9999999999999999991, 'Test Server 1'),
+  (9999999999999999992, 'Test Server 2')
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
 -- Insert test clubs
 INSERT INTO clubs (id, name, discord_channel, server_id) VALUES
-  ('test-club-1', 'Test Club 1', 'test-channel-1', 'test-server-1'),
-  ('test-club-2', 'Test Club 2', 'test-channel-2', 'test-server-1')
+  ('test-club-1', 'Test Club 1', 1111111111111111111, 9999999999999999991),
+  ('test-club-2', 'Test Club 2', 2222222222222222222, 9999999999999999991)
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
   discord_channel = EXCLUDED.discord_channel,
