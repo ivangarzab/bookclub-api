@@ -20,9 +20,10 @@ jobs:
         with:
           deno-version: v2.x
       
-      - name: Install Supabase CLI
-        run: |
-          npm install -g supabase
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
       
       - name: Get version from tag
         id: version
