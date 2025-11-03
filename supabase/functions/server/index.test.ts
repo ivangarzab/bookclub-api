@@ -1,5 +1,5 @@
 // Tests for server edge function
-import { assertEquals, assert } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals, assert, assertExists } from "https://deno.land/std@0.168.0/testing/asserts.ts";
 import {
   createMockRequest,
   assertCorsHeaders,
@@ -225,4 +225,28 @@ Deno.test("Server - PATCH returns 405 method not allowed", async () => {
   const response = await handleRequest(req);
 
   await assertErrorResponse(response, 405, 'Method not allowed');
+});
+
+// Additional error path tests for better coverage
+
+Deno.test("Server - GET all servers returns empty array when no servers", async () => {
+  const req = createMockRequest('GET', 'http://localhost/server');
+  const response = await handleRequest(req);
+
+  const body = await assertSuccessResponse(response);
+  assertEquals(body.servers, []);
+});
+
+Deno.test("Server - GET server returns clubs with discord_channel", async () => {
+  db.servers.set(mockServer.id, mockServer);
+  db.clubs.set(mockClub.id, { ...mockClub, server_id: mockServer.id });
+
+  const req = createMockRequest('GET', `http://localhost/server?id=${mockServer.id}`);
+  const response = await handleRequest(req);
+
+  const body = await assertSuccessResponse(response);
+  assertExists(body.clubs);
+  if (body.clubs.length > 0) {
+    assertExists(body.clubs[0].discord_channel);
+  }
 });
