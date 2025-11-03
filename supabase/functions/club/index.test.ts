@@ -388,3 +388,51 @@ Deno.test("Club - DELETE returns 400 when server_id missing", async () => {
 
   await assertErrorResponse(response, 400);
 });
+
+Deno.test("Club - POST creates club without discord_channel", async () => {
+  setupTest();
+  db.servers.set(TEST_SERVER_ID, mockServer);
+
+  const newClub = {
+    name: "Club Without Channel",
+    server_id: TEST_SERVER_ID
+    // No discord_channel provided
+  };
+
+  const req = createMockRequest('POST', 'http://localhost/club', newClub);
+  const response = await handleRequest(req);
+
+  const body = await assertSuccessResponse(response);
+  assertEquals(body.success, true);
+  assertEquals(body.club.name, newClub.name);
+  assertEquals(body.club.discord_channel, null);
+});
+
+Deno.test("Club - PUT updates discord_channel", async () => {
+  setupTest();
+  db.servers.set(TEST_SERVER_ID, mockServer);
+  db.clubs.set(mockClub.id, { ...mockClub });
+
+  const updateData = {
+    id: mockClub.id,
+    server_id: TEST_SERVER_ID,
+    discord_channel: "updated-channel"
+  };
+
+  const req = createMockRequest('PUT', 'http://localhost/club', updateData);
+  const response = await handleRequest(req);
+
+  const body = await assertSuccessResponse(response);
+  assertEquals(body.success, true);
+  assertEquals(body.club.discord_channel, "updated-channel");
+});
+
+Deno.test("Club - GET by discord_channel returns 404 when not found", async () => {
+  setupTest();
+  db.servers.set(TEST_SERVER_ID, mockServer);
+
+  const req = createMockRequest('GET', `http://localhost/club?discord_channel=nonexistent&server_id=${TEST_SERVER_ID}`);
+  const response = await handleRequest(req);
+
+  await assertErrorResponse(response, 404, 'Not found');
+});
