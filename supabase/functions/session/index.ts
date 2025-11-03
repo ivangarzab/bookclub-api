@@ -134,7 +134,7 @@ async function handleGetSession(req, supabaseClient) {
     console.log(`[SESSION-GET] Getting club info for club_id: "${sessionData.club_id}"`);
     const { data: clubData, error: clubError } = await supabaseClient
       .from("clubs")
-      .select("id, name, discord_channel")
+      .select("id, name, discord_channel::text")
       .eq("id", sessionData.club_id)
       .single()
 
@@ -563,7 +563,7 @@ async function handleCreateSession(req, supabaseClient) {
     console.log(`[SESSION-POST] Getting full club data for response`);
     const { data: fullClubData, error: fullClubError } = await supabaseClient
       .from("clubs")
-      .select("id, name, discord_channel")
+      .select("id, name, discord_channel::text")
       .eq("id", data.club_id)
       .single()
 

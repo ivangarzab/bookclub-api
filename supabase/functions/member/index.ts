@@ -186,10 +186,10 @@ async function handleGetMember(req, supabaseClient) {
     
     if (clubIds.length > 0) {
       console.log(`[MEMBER-GET] Getting details for ${clubIds.length} clubs:`, clubIds);
-      
+
       const { data: clubsData, error: clubsError } = await supabaseClient
         .from("clubs")
-        .select("id, name, discord_channel")
+        .select("id, name, discord_channel::text")
         .in("id", clubIds)
 
       console.log(`[MEMBER-GET] Clubs details query result:`, { 
@@ -250,10 +250,10 @@ async function handleGetMember(req, supabaseClient) {
     
     if (shameClubIds.length > 0) {
       console.log(`[MEMBER-GET] Getting details for ${shameClubIds.length} shame clubs:`, shameClubIds);
-      
+
       const { data: clubsData, error: clubsError } = await supabaseClient
         .from("clubs")
-        .select("id, name, discord_channel")
+        .select("id, name, discord_channel::text")
         .in("id", shameClubIds)
 
       console.log(`[MEMBER-GET] Shame clubs details query result:`, { 
