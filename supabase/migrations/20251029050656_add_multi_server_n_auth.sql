@@ -22,11 +22,19 @@ ADD COLUMN IF NOT EXISTS "user_id" uuid;
 ALTER TABLE "public"."members" 
 ADD COLUMN IF NOT EXISTS "role" text DEFAULT 'member';
 
--- Add foreign key constraint for clubs -> servers
-ALTER TABLE "public"."clubs" 
-ADD CONSTRAINT "clubs_server_id_fkey" 
-FOREIGN KEY ("server_id") REFERENCES "public"."servers"("id")
-ON DELETE CASCADE;
+-- Add foreign key constraint for clubs -> servers (only if it doesn't exist)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'clubs_server_id_fkey'
+    ) THEN
+        ALTER TABLE "public"."clubs"
+        ADD CONSTRAINT "clubs_server_id_fkey"
+        FOREIGN KEY ("server_id") REFERENCES "public"."servers"("id")
+        ON DELETE CASCADE;
+    END IF;
+END $$;
 
 -- Grant permissions on servers table
 GRANT ALL ON TABLE "public"."servers" TO "anon";
