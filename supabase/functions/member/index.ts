@@ -1,6 +1,6 @@
 // supabase/functions/member/index.ts - Updated for new schema with debug logs and CORS
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -53,7 +53,7 @@ export async function handler(req: Request, supabaseClient?: SupabaseClient): Pr
   } catch (error: any) {
     console.log(`[MEMBER] FATAL ERROR: ${error.message}`);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       {
         headers: {
           'Content-Type': 'application/json',
@@ -73,7 +73,7 @@ if (import.meta.main) {
 /**
  * Handles GET requests to retrieve member details
  */
-async function handleGetMember(req, supabaseClient) {
+async function handleGetMember(req: Request, supabaseClient: SupabaseClient) {
   try {
     console.log(`[MEMBER-GET] Starting handleGetMember`);
     
@@ -182,7 +182,7 @@ async function handleGetMember(req, supabaseClient) {
 
     // Get club details
     const clubIds = memberClubs.map(mc => mc.club_id);
-    let clubs = [];
+    let clubs: Array<Record<string, unknown>> = [];
     
     if (clubIds.length > 0) {
       console.log(`[MEMBER-GET] Getting details for ${clubIds.length} clubs:`, clubIds);
@@ -246,7 +246,7 @@ async function handleGetMember(req, supabaseClient) {
 
     // Get club info for shame list
     const shameClubIds = shameData.map(s => s.club_id);
-    let shameClubs = [];
+    let shameClubs: Array<Record<string, unknown>> = [];
     
     if (shameClubIds.length > 0) {
       console.log(`[MEMBER-GET] Getting details for ${shameClubIds.length} shame clubs:`, shameClubIds);
@@ -314,9 +314,9 @@ async function handleGetMember(req, supabaseClient) {
       }
     )
   } catch (error) {
-    console.log(`[MEMBER-GET] ERROR: ${error.message}`);
+    console.log(`[MEMBER-GET] ERROR: ${(error as Error).message}`);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { 
         headers: { 
           'Content-Type': 'application/json',
@@ -331,7 +331,7 @@ async function handleGetMember(req, supabaseClient) {
 /**
  * Handles POST requests to create a new member
  */
-async function handleCreateMember(req, supabaseClient) {
+async function handleCreateMember(req: Request, supabaseClient: SupabaseClient) {
   try {
     console.log(`[MEMBER-POST] Starting handleCreateMember`);
     
@@ -491,7 +491,7 @@ async function handleCreateMember(req, supabaseClient) {
 
       // Check if all club IDs exist
       const existingClubIds = existingClubs.map(c => c.id);
-      const nonExistentClubs = data.clubs.filter(id => !existingClubIds.includes(id));
+      const nonExistentClubs = data.clubs.filter((id: string) => !existingClubIds.includes(id));
       
       console.log(`[MEMBER-POST] Club validation:`, {
         existing_clubs: existingClubIds,
@@ -518,7 +518,7 @@ async function handleCreateMember(req, supabaseClient) {
       }
 
       // Insert club associations
-      const memberClubData = data.clubs.map(clubId => ({
+      const memberClubData = data.clubs.map((clubId: string) => ({
         member_id: newMemberId,
         club_id: clubId
       }));
@@ -582,9 +582,9 @@ async function handleCreateMember(req, supabaseClient) {
     )
     
   } catch (error) {
-    console.log(`[MEMBER-POST] ERROR: ${error.message}`);
+    console.log(`[MEMBER-POST] ERROR: ${(error as Error).message}`);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { 
         headers: { 
           'Content-Type': 'application/json',
@@ -599,7 +599,7 @@ async function handleCreateMember(req, supabaseClient) {
 /**
  * Handles PUT requests to update an existing member
  */
-async function handleUpdateMember(req, supabaseClient) {
+async function handleUpdateMember(req: Request, supabaseClient: SupabaseClient) {
   try {
     console.log(`[MEMBER-PUT] Starting handleUpdateMember`);
     
@@ -650,7 +650,7 @@ async function handleUpdateMember(req, supabaseClient) {
     }
 
     // Build update object with only the fields that should be updated
-    const updateData = {}
+    const updateData: Record<string, unknown> = {}
     if (data.name !== undefined) updateData.name = data.name
     if (data.points !== undefined) updateData.points = data.points
     if (data.books_read !== undefined) updateData.books_read = data.books_read
@@ -756,10 +756,10 @@ async function handleUpdateMember(req, supabaseClient) {
       const existingClubIds = existingAssociations.map(a => a.club_id);
       
       // Clubs to add (in new list but not in existing)
-      const clubsToAdd = data.clubs.filter(id => !existingClubIds.includes(id));
+      const clubsToAdd = data.clubs.filter((id: string) => !existingClubIds.includes(id));
       
       // Clubs to remove (in existing but not in new list)
-      const clubsToRemove = existingClubIds.filter(id => !data.clubs.includes(id));
+      const clubsToRemove = existingClubIds.filter((id: string) => !data.clubs.includes(id));
 
       console.log(`[MEMBER-PUT] Club changes:`, { 
         to_add: clubsToAdd, 
@@ -803,7 +803,7 @@ async function handleUpdateMember(req, supabaseClient) {
         }
 
         const validClubIds = validClubs.map(c => c.id);
-        const invalidClubs = clubsToAdd.filter(id => !validClubIds.includes(id));
+        const invalidClubs = clubsToAdd.filter((id: string) => !validClubIds.includes(id));
         
         console.log(`[MEMBER-PUT] Club validation:`, {
           valid_clubs: validClubIds,
@@ -830,7 +830,7 @@ async function handleUpdateMember(req, supabaseClient) {
         }
 
         // Add new associations
-        const newAssociations = validClubIds.map(clubId => ({
+        const newAssociations = validClubIds.map((clubId: string) => ({
           member_id: data.id,
           club_id: clubId
         }));
@@ -948,9 +948,9 @@ async function handleUpdateMember(req, supabaseClient) {
     )
     
   } catch (error) {
-    console.log(`[MEMBER-PUT] ERROR: ${error.message}`);
+    console.log(`[MEMBER-PUT] ERROR: ${(error as Error).message}`);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { 
         headers: { 
           'Content-Type': 'application/json',
@@ -965,7 +965,7 @@ async function handleUpdateMember(req, supabaseClient) {
 /**
  * Handles DELETE requests to remove a member
  */
-async function handleDeleteMember(req, supabaseClient) {
+async function handleDeleteMember(req: Request, supabaseClient: SupabaseClient) {
   try {
     console.log(`[MEMBER-DELETE] Starting handleDeleteMember`);
     
@@ -1113,9 +1113,9 @@ async function handleDeleteMember(req, supabaseClient) {
     )
     
   } catch (error) {
-    console.log(`[MEMBER-DELETE] ERROR: ${error.message}`);
+    console.log(`[MEMBER-DELETE] ERROR: ${(error as Error).message}`);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { 
         headers: { 
           'Content-Type': 'application/json',
