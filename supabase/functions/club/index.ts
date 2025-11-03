@@ -1,6 +1,6 @@
 // supabase/functions/club/index.ts - Updated with CORS support
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -69,7 +69,7 @@ if (import.meta.main) {
 /**
  * Helper function to validate server exists
  */
-async function validateServer(supabaseClient, serverId) {
+async function validateServer(supabaseClient: SupabaseClient, serverId: string) {
   const { data: serverData, error: serverError } = await supabaseClient
     .from("servers")
     .select("id")
@@ -86,7 +86,7 @@ async function validateServer(supabaseClient, serverId) {
 /**
  * Handles GET requests to retrieve club details
  */
-async function handleGetClub(req, supabaseClient) {
+async function handleGetClub(req: Request, supabaseClient: SupabaseClient) {
   try {
     console.log(`[CLUB-GET] === New GET request received ===`);
     
@@ -139,7 +139,7 @@ async function handleGetClub(req, supabaseClient) {
       console.log(`[CLUB-GET] Searching for club with discord_channel: "${discordChannel}" and server_id: "${serverId}"`);
       const { data: clubData, error: clubError } = await supabaseClient
         .from("clubs")
-        .select("*")
+        .select("id, name, discord_channel::text, server_id::text")
         .eq("discord_channel", discordChannel)
         .eq("server_id", serverId)
         .single()
@@ -221,9 +221,9 @@ async function handleGetClub(req, supabaseClient) {
     return await getFullClubDetails(supabaseClient, clubId, serverId);
     
   } catch (error) {
-    console.log(`[CLUB-GET] ERROR: ${error.message}`);
+    console.log(`[CLUB-GET] ERROR: ${(error as Error).message}`);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { 
         headers: { 
           'Content-Type': 'application/json',
@@ -238,14 +238,14 @@ async function handleGetClub(req, supabaseClient) {
 /**
  * Helper function to get full club details by club ID and server ID
  */
-async function getFullClubDetails(supabaseClient, clubId, serverId) {
+async function getFullClubDetails(supabaseClient: SupabaseClient, clubId: string, serverId: string) {
   console.log(`[CLUB-GET] Starting getFullClubDetails - clubId: "${clubId}", serverId: "${serverId}"`);
   
   // Get club data with server verification
   console.log(`[CLUB-GET] Querying club table for id: "${clubId}" and server_id: "${serverId}"`);
   const { data: clubData, error: clubError } = await supabaseClient
     .from("clubs")
-    .select("*")
+    .select("id, name, discord_channel::text, server_id::text")
     .eq("id", clubId)
     .eq("server_id", serverId)
     .single()
@@ -290,11 +290,11 @@ async function getFullClubDetails(supabaseClient, clubId, serverId) {
   }
 
   // Process members (might be empty, that's fine)
-  let membersWithClubs = []
-  
+  let membersWithClubs: Array<Record<string, unknown>> = []
+
   if (memberClubsData && memberClubsData.length > 0) {
     // Extract member IDs
-    const memberIds = memberClubsData.map(mc => mc.member_id)
+    const memberIds = memberClubsData.map((mc: Record<string, unknown>) => mc.member_id)
     console.log(`[CLUB-GET] Found member IDs:`, memberIds);
 
     // Get member details
@@ -323,7 +323,7 @@ async function getFullClubDetails(supabaseClient, clubId, serverId) {
     // Get club memberships for each member
     console.log(`[CLUB-GET] Building member details with club associations...`);
     membersWithClubs = await Promise.all(
-      membersData.map(async (member) => {
+      membersData.map(async (member: Record<string, unknown>) => {
         const { data: memberClubs } = await supabaseClient
           .from("memberclubs")
           .select("club_id")
@@ -334,7 +334,7 @@ async function getFullClubDetails(supabaseClient, clubId, serverId) {
           name: member.name,
           points: member.points,
           books_read: member.books_read,
-          clubs: memberClubs?.map(mc => mc.club_id) || []
+          clubs: memberClubs?.map((mc: Record<string, unknown>) => mc.club_id) || []
         }
       })
     )
@@ -531,7 +531,7 @@ async function getFullClubDetails(supabaseClient, clubId, serverId) {
 /**
  * Handles POST requests to create a new club
  */
-async function handleCreateClub(req, supabaseClient) {
+async function handleCreateClub(req: Request, supabaseClient: SupabaseClient) {
   try {
     console.log(`[CLUB-POST] === New POST request received ===`);
     
@@ -855,9 +855,9 @@ async function handleCreateClub(req, supabaseClient) {
     )
     
   } catch (error) {
-    console.log(`[CLUB-POST] ERROR: ${error.message}`);
+    console.log(`[CLUB-POST] ERROR: ${(error as Error).message}`);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { 
         headers: { 
           'Content-Type': 'application/json',
@@ -872,7 +872,7 @@ async function handleCreateClub(req, supabaseClient) {
 /**
  * Handles PUT requests to update an existing club
  */
-async function handleUpdateClub(req, supabaseClient) {
+async function handleUpdateClub(req: Request, supabaseClient: SupabaseClient) {
   try {
     console.log(`[CLUB-PUT] === New PUT request received ===`);
     
@@ -929,7 +929,7 @@ async function handleUpdateClub(req, supabaseClient) {
     }
 
     // Build update object with only the fields that should be updated
-    const updateData = {}
+    const updateData: Record<string, unknown> = {}
     if (data.name !== undefined) updateData.name = data.name
     if (data.discord_channel !== undefined) updateData.discord_channel = data.discord_channel
 
@@ -1018,7 +1018,7 @@ async function handleUpdateClub(req, supabaseClient) {
       // Get current club data for response
       const { data: currentClub, error: getCurrentError } = await supabaseClient
         .from("clubs")
-        .select("*")
+        .select("id, name, discord_channel::text, server_id::text")
         .eq("id", data.id)
         .eq("server_id", data.server_id)
         .single()
@@ -1099,7 +1099,7 @@ async function handleUpdateClub(req, supabaseClient) {
       const current_member_ids = current_shame_list.map(item => item.member_id);
       
       // Members to add (in new list but not in current)
-      const members_to_add = data.shame_list.filter(id => !current_member_ids.includes(id));
+      const members_to_add = data.shame_list.filter((id: number) => !current_member_ids.includes(id));
       
       // Members to remove (in current but not in new list)
       const members_to_remove = current_member_ids.filter(id => !data.shame_list.includes(id));
@@ -1188,9 +1188,9 @@ async function handleUpdateClub(req, supabaseClient) {
     )
     
   } catch (error) {
-    console.log(`[CLUB-PUT] ERROR: ${error.message}`);
+    console.log(`[CLUB-PUT] ERROR: ${(error as Error).message}`);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { 
         headers: { 
           'Content-Type': 'application/json',
@@ -1205,7 +1205,7 @@ async function handleUpdateClub(req, supabaseClient) {
 /**
  * Handles DELETE requests to remove a club
  */
-async function handleDeleteClub(req, supabaseClient) {
+async function handleDeleteClub(req: Request, supabaseClient: SupabaseClient) {
   try {
     console.log(`[CLUB-DELETE] === New DELETE request received ===`);
     
@@ -1437,9 +1437,9 @@ async function handleDeleteClub(req, supabaseClient) {
     )
     
   } catch (error) {
-    console.log(`[CLUB-DELETE] ERROR: ${error.message}`);
+    console.log(`[CLUB-DELETE] ERROR: ${(error as Error).message}`);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { 
         headers: { 
           'Content-Type': 'application/json',

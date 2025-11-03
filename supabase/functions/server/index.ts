@@ -1,6 +1,6 @@
 // supabase/functions/server/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -53,7 +53,7 @@ export async function handler(req: Request, supabaseClient?: SupabaseClient): Pr
   } catch (error: any) {
     console.log(`[SERVER] FATAL ERROR: ${error.message}`);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       {
         headers: {
           'Content-Type': 'application/json',
@@ -73,7 +73,7 @@ if (import.meta.main) {
 /**
  * Handles GET requests to retrieve server details
  */
-async function handleGetServer(req, supabaseClient) {
+async function handleGetServer(req: Request, supabaseClient: SupabaseClient) {
   try {
     console.log(`[SERVER-GET] Starting handleGetServer`);
     
@@ -268,9 +268,9 @@ async function handleGetServer(req, supabaseClient) {
       }
     )
   } catch (error) {
-    console.log(`[SERVER-GET] ERROR: ${error.message}`);
+    console.log(`[SERVER-GET] ERROR: ${(error as Error).message}`);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { 
         headers: { 
           'Content-Type': 'application/json',
@@ -285,7 +285,7 @@ async function handleGetServer(req, supabaseClient) {
 /**
  * Handles POST requests to create a new server
  */
-async function handleCreateServer(req, supabaseClient) {
+async function handleCreateServer(req: Request, supabaseClient: SupabaseClient) {
   try {
     console.log(`[SERVER-POST] Starting handleCreateServer`);
     
@@ -360,9 +360,9 @@ async function handleCreateServer(req, supabaseClient) {
     )
     
   } catch (error) {
-    console.log(`[SERVER-POST] ERROR: ${error.message}`);
+    console.log(`[SERVER-POST] ERROR: ${(error as Error).message}`);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { 
         headers: { 
           'Content-Type': 'application/json',
@@ -377,7 +377,7 @@ async function handleCreateServer(req, supabaseClient) {
 /**
  * Handles PUT requests to update an existing server
  */
-async function handleUpdateServer(req, supabaseClient) {
+async function handleUpdateServer(req: Request, supabaseClient: SupabaseClient) {
   try {
     console.log(`[SERVER-PUT] Starting handleUpdateServer`);
     
@@ -428,7 +428,7 @@ async function handleUpdateServer(req, supabaseClient) {
     }
 
     // Build update object with only the fields that should be updated
-    const updateData = {}
+    const updateData: Record<string, unknown> = {}
     if (data.name !== undefined) updateData.name = data.name
 
     console.log(`[SERVER-PUT] Update data prepared:`, updateData);
@@ -493,9 +493,9 @@ async function handleUpdateServer(req, supabaseClient) {
     )
     
   } catch (error) {
-    console.log(`[SERVER-PUT] ERROR: ${error.message}`);
+    console.log(`[SERVER-PUT] ERROR: ${(error as Error).message}`);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { 
         headers: { 
           'Content-Type': 'application/json',
@@ -510,7 +510,7 @@ async function handleUpdateServer(req, supabaseClient) {
 /**
  * Handles DELETE requests to remove a server
  */
-async function handleDeleteServer(req, supabaseClient) {
+async function handleDeleteServer(req: Request, supabaseClient: SupabaseClient) {
   try {
     console.log(`[SERVER-DELETE] Starting handleDeleteServer`);
     
@@ -632,9 +632,9 @@ async function handleDeleteServer(req, supabaseClient) {
     )
     
   } catch (error) {
-    console.log(`[SERVER-DELETE] ERROR: ${error.message}`);
+    console.log(`[SERVER-DELETE] ERROR: ${(error as Error).message}`);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { 
         headers: { 
           'Content-Type': 'application/json',

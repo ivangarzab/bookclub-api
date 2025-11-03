@@ -341,3 +341,98 @@ Deno.test("Club - DELETE cascades to sessions and discussions", async () => {
   assertEquals(db.memberClubs.length, 0);
   assertEquals(db.shameList.length, 0);
 });
+
+// Additional error path tests for better coverage
+
+Deno.test("Club - GET returns club with discord_channel as string", async () => {
+  db.clubs.set(mockClub.id, mockClub);
+  db.servers.set(mockClub.server_id, { id: mockClub.server_id, name: "Test Server" });
+
+  const req = createMockRequest('GET', `http://localhost/club?id=${mockClub.id}&server_id=${mockClub.server_id}`);
+  const response = await handleRequest(req);
+
+  const body = await assertSuccessResponse(response);
+  assertExists(body.discord_channel);
+  assertEquals(typeof body.discord_channel, 'string');
+});
+
+Deno.test("Club - GET handles empty shame list", async () => {
+  db.clubs.set(mockClub.id, mockClub);
+  db.servers.set(mockClub.server_id, { id: mockClub.server_id, name: "Test Server" });
+
+  const req = createMockRequest('GET', `http://localhost/club?id=${mockClub.id}&server_id=${mockClub.server_id}`);
+  const response = await handleRequest(req);
+
+  const body = await assertSuccessResponse(response);
+  assertEquals(body.shame_list, []);
+});
+
+Deno.test("Club - PUT returns 400 when shame_list is not an array", async () => {
+  db.clubs.set(mockClub.id, mockClub);
+  db.servers.set(mockClub.server_id, { id: mockClub.server_id, name: "Test Server" });
+
+  const data = {
+    id: mockClub.id,
+    server_id: mockClub.server_id,
+    shame_list: "not-an-array"
+  };
+  const req = createMockRequest('PUT', 'http://localhost/club', data);
+  const response = await handleRequest(req);
+
+  await assertErrorResponse(response, 400);
+});
+
+Deno.test("Club - DELETE returns 400 when server_id missing", async () => {
+  const req = createMockRequest('DELETE', `http://localhost/club?id=${mockClub.id}`);
+  const response = await handleRequest(req);
+
+  await assertErrorResponse(response, 400);
+});
+
+Deno.test("Club - POST creates club without discord_channel", async () => {
+  setupTest();
+  db.servers.set(TEST_SERVER_ID, mockServer);
+
+  const newClub = {
+    name: "Club Without Channel",
+    server_id: TEST_SERVER_ID
+    // No discord_channel provided
+  };
+
+  const req = createMockRequest('POST', 'http://localhost/club', newClub);
+  const response = await handleRequest(req);
+
+  const body = await assertSuccessResponse(response);
+  assertEquals(body.success, true);
+  assertEquals(body.club.name, newClub.name);
+  assertEquals(body.club.discord_channel, null);
+});
+
+Deno.test("Club - PUT updates discord_channel", async () => {
+  setupTest();
+  db.servers.set(TEST_SERVER_ID, mockServer);
+  db.clubs.set(mockClub.id, { ...mockClub });
+
+  const updateData = {
+    id: mockClub.id,
+    server_id: TEST_SERVER_ID,
+    discord_channel: "updated-channel"
+  };
+
+  const req = createMockRequest('PUT', 'http://localhost/club', updateData);
+  const response = await handleRequest(req);
+
+  const body = await assertSuccessResponse(response);
+  assertEquals(body.success, true);
+  assertEquals(body.club.discord_channel, "updated-channel");
+});
+
+Deno.test("Club - GET by discord_channel returns 404 when not found", async () => {
+  setupTest();
+  db.servers.set(TEST_SERVER_ID, mockServer);
+
+  const req = createMockRequest('GET', `http://localhost/club?discord_channel=nonexistent&server_id=${TEST_SERVER_ID}`);
+  const response = await handleRequest(req);
+
+  await assertErrorResponse(response, 404, 'Not found');
+});

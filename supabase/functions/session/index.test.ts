@@ -228,3 +228,83 @@ Deno.test("Session - DELETE cascades to discussions", async () => {
   assertEquals(db.discussions.has(mockDiscussion.id), false);
   assertEquals(db.discussions.has(mockDiscussion2.id), false);
 });
+
+// Additional error path tests for better coverage
+
+Deno.test("Session - PUT returns 400 when session_id missing", async () => {
+  const data = {
+    due_date: "2025-12-31"
+  };
+  const req = createMockRequest('PUT', 'http://localhost/session', data);
+  const response = await handleRequest(req);
+
+  await assertErrorResponse(response, 400);
+});
+
+Deno.test("Session - DELETE returns 400 when session_id missing", async () => {
+  const req = createMockRequest('DELETE', 'http://localhost/session');
+  const response = await handleRequest(req);
+
+  await assertErrorResponse(response, 400);
+});
+
+Deno.test("Session - GET returns club with discord_channel", async () => {
+  db.sessions.set(mockSession.id, mockSession);
+  db.clubs.set(mockClub.id, mockClub);
+  db.books.set(mockBook.id, mockBook);
+
+  const req = createMockRequest('GET', `http://localhost/session?id=${mockSession.id}`);
+  const response = await handleRequest(req);
+
+  const body = await assertSuccessResponse(response);
+  assertExists(body.club);
+  assertExists(body.club.discord_channel);
+});
+
+Deno.test("Session - POST creates session with discussions", async () => {
+  db.clubs.set(mockClub.id, mockClub);
+
+  const data = createSessionData();
+  const req = createMockRequest('POST', 'http://localhost/session', data);
+  const response = await handleRequest(req);
+
+  const body = await assertSuccessResponse(response);
+  assertEquals(body.success, true);
+  assertExists(body.session);
+});
+
+Deno.test("Session - POST creates session with provided session ID", async () => {
+  setupTest();
+  db.clubs.set(mockClub.id, mockClub);
+
+  const customId = createTestUUID();
+  const sessionData = {
+    ...createSessionData(mockClub.id),
+    id: customId
+  };
+
+  const req = createMockRequest('POST', 'http://localhost/session', sessionData);
+  const response = await handleRequest(req);
+
+  const body = await assertSuccessResponse(response);
+  assertEquals(body.session.id, customId);
+});
+
+Deno.test("Session - PUT updates book author only", async () => {
+  setupTest();
+  db.clubs.set(mockClub.id, mockClub);
+  db.books.set(mockBook.id, { ...mockBook });
+  db.sessions.set(mockSession.id, mockSession);
+
+  const updateData = {
+    id: mockSession.id,
+    book: { author: "Updated Author" }
+  };
+
+  const req = createMockRequest('PUT', 'http://localhost/session', updateData);
+  const response = await handleRequest(req);
+
+  const body = await assertSuccessResponse(response);
+  assertEquals(body.success, true);
+  assertEquals(body.updates.book, true);
+});
