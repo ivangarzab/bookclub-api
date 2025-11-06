@@ -139,7 +139,7 @@ async function handleGetClub(req: Request, supabaseClient: SupabaseClient) {
       console.log(`[CLUB-GET] Searching for club with discord_channel: "${discordChannel}" and server_id: "${serverId}"`);
       const { data: clubData, error: clubError } = await supabaseClient
         .from("clubs")
-        .select("id, name, discord_channel::text, server_id::text")
+        .select("id, name, discord_channel, server_id")
         .eq("discord_channel", discordChannel)
         .eq("server_id", serverId)
         .single()
@@ -245,7 +245,7 @@ async function getFullClubDetails(supabaseClient: SupabaseClient, clubId: string
   console.log(`[CLUB-GET] Querying club table for id: "${clubId}" and server_id: "${serverId}"`);
   const { data: clubData, error: clubError } = await supabaseClient
     .from("clubs")
-    .select("id, name, discord_channel::text, server_id::text")
+    .select("id, name, discord_channel, server_id")
     .eq("id", clubId)
     .eq("server_id", serverId)
     .single()
@@ -1018,7 +1018,7 @@ async function handleUpdateClub(req: Request, supabaseClient: SupabaseClient) {
       // Get current club data for response
       const { data: currentClub, error: getCurrentError } = await supabaseClient
         .from("clubs")
-        .select("id, name, discord_channel::text, server_id::text")
+        .select("id, name, discord_channel, server_id")
         .eq("id", data.id)
         .eq("server_id", data.server_id)
         .single()
