@@ -189,7 +189,7 @@ async function handleGetMember(req: Request, supabaseClient: SupabaseClient) {
 
       const { data: clubsData, error: clubsError } = await supabaseClient
         .from("clubs")
-        .select("id, name, discord_channel::text")
+        .select("id, name, discord_channel") // discord_channel is already text in database
         .in("id", clubIds)
 
       console.log(`[MEMBER-GET] Clubs details query result:`, { 
@@ -253,7 +253,7 @@ async function handleGetMember(req: Request, supabaseClient: SupabaseClient) {
 
       const { data: clubsData, error: clubsError } = await supabaseClient
         .from("clubs")
-        .select("id, name, discord_channel::text")
+        .select("id, name, discord_channel") // discord_channel is already text in database
         .in("id", shameClubIds)
 
       console.log(`[MEMBER-GET] Shame clubs details query result:`, { 

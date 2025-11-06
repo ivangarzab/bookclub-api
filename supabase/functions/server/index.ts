@@ -89,7 +89,7 @@ async function handleGetServer(req: Request, supabaseClient: SupabaseClient) {
       // If no ID provided, return all servers
       const { data: serversData, error: serversError } = await supabaseClient
         .from("servers")
-        .select("id::text, name") // Cast ID to text to preserve precision
+        .select("id, name") // ID is already text in the database
         .order('name', { ascending: true })
 
       console.log(`[SERVER-GET] All servers query result:`, { 
@@ -121,8 +121,8 @@ async function handleGetServer(req: Request, supabaseClient: SupabaseClient) {
           
           const { data: clubsData, error: clubsError } = await supabaseClient
             .from("clubs")
-            .select("id, name, discord_channel::text") // Cast discord_channel to text too
-            .eq("server_id", server.id) // server.id is now already a string
+            .select("id, name, discord_channel") // discord_channel is already text in database
+            .eq("server_id", server.id) // server.id is already a string
 
           console.log(`[SERVER-GET] Clubs for server ${server.id}:`, { 
             count: clubsData?.length || 0, 
@@ -159,7 +159,7 @@ async function handleGetServer(req: Request, supabaseClient: SupabaseClient) {
     // Get specific server data
     const { data: serverData, error: serverError } = await supabaseClient
       .from("servers")
-      .select("id::text, name") // Cast ID to text to preserve precision
+      .select("id, name") // ID is already text in the database
       .eq("id", serverId)
       .single()
 
@@ -187,7 +187,7 @@ async function handleGetServer(req: Request, supabaseClient: SupabaseClient) {
     console.log(`[SERVER-GET] Getting clubs for server: "${serverId}"`);
     const { data: clubsData, error: clubsError } = await supabaseClient
       .from("clubs")
-      .select("id, name, discord_channel::text") // Cast discord_channel to text
+      .select("id, name, discord_channel") // discord_channel is already text in database
       .eq("server_id", serverId)
 
     console.log(`[SERVER-GET] Clubs query result:`, { 

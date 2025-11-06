@@ -134,7 +134,7 @@ async function handleGetSession(req: Request, supabaseClient: SupabaseClient) {
     console.log(`[SESSION-GET] Getting club info for club_id: "${sessionData.club_id}"`);
     const { data: clubData, error: clubError } = await supabaseClient
       .from("clubs")
-      .select("id, name, discord_channel::text")
+      .select("id, name, discord_channel") // discord_channel is already text in database
       .eq("id", sessionData.club_id)
       .single()
 
