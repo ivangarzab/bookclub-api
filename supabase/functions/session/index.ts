@@ -134,7 +134,7 @@ async function handleGetSession(req: Request, supabaseClient: SupabaseClient) {
     console.log(`[SESSION-GET] Getting club info for club_id: "${sessionData.club_id}"`);
     const { data: clubData, error: clubError } = await supabaseClient
       .from("clubs")
-      .select("id, name, discord_channel") // discord_channel is already text in database
+      .select("id, name, discord_channel")
       .eq("id", sessionData.club_id)
       .single()
 
@@ -219,7 +219,7 @@ async function handleGetSession(req: Request, supabaseClient: SupabaseClient) {
     const { data: shameListData, error: shameListError } = await supabaseClient
       .from("shamelist")
       .select("member_id")
-      .eq("club_id", clubData.id) // Changed from session_id to club_id
+      .eq("club_id", clubData.id)
 
     console.log(`[SESSION-GET] Shame list query result:`, { 
       count: shameListData?.length || 0, 
