@@ -33,6 +33,7 @@ Your local API is now running at `http://localhost:54321` 🚀
 ## Documentation
 
 ### API Reference
+- **[Interactive API Documentation](http://localhost:8080)** - Run `deno task docs` to view the OpenAPI spec
 - [Club Endpoint](supabase/functions/club/README.md) - Manage book clubs
 - [Member Endpoint](supabase/functions/member/README.md) - Manage members
 - [Session Endpoint](supabase/functions/session/README.md) - Manage reading sessions
@@ -68,12 +69,19 @@ bookclub-api/
 ├── supabase/
 │   ├── functions/              # Edge Functions (API endpoints)
 │   │   ├── _shared/           # Shared test utilities
-│   │   ├── club/              # Club management + tests
-│   │   ├── member/            # Member management + tests
-│   │   ├── session/           # Session management + tests
-│   │   └── server/            # Server registration + tests
+│   │   ├── club/              # Club management
+│   │   │   ├── index.ts       # Routing handler (~70 lines)
+│   │   │   ├── handlers/      # GET, POST, PUT, DELETE handlers
+│   │   │   ├── utils/         # Response & validation utilities
+│   │   │   └── index.test.ts  # Unit tests
+│   │   ├── member/            # Member management (same structure)
+│   │   ├── session/           # Session management (same structure)
+│   │   └── server/            # Server registration (same structure)
 │   └── migrations/            # Database migrations
 │       └── DATABASE_SCHEMA.md # Schema documentation
+├── docs/                      # API documentation
+│   ├── openapi.yaml           # OpenAPI 3.0 specification
+│   └── index.html             # Scalar API viewer
 ├── deno.jsonc                 # Deno configuration & test tasks
 ├── TESTING.md                 # Testing guide
 ├── seed.sql                   # Sample data for local dev
@@ -97,10 +105,15 @@ supabase functions serve       # Serve functions locally
 supabase db reset              # Reset database with migrations
 
 # Testing
-deno task test                 # Run all tests
+deno task test                 # Run all unit tests
 deno task test:watch           # Run tests in watch mode
 deno task test:club            # Test specific function
 deno task test:coverage        # Generate coverage report
+deno task test:integration     # Run integration tests (requires local Supabase)
+deno task test:all             # Run both unit and integration tests
+
+# Documentation
+deno task docs                 # Serve API docs at http://localhost:8080
 
 # Database
 supabase db pull               # Pull schema from production
