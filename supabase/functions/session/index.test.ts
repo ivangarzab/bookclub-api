@@ -308,3 +308,21 @@ Deno.test("Session - PUT updates book author only", async () => {
   assertEquals(body.success, true);
   assertEquals(body.updates.book, true);
 });
+
+Deno.test("Session - PUT returns message when no changes", async () => {
+  setupTest();
+  db.clubs.set(mockClub.id, mockClub);
+  db.books.set(mockBook.id, { ...mockBook });
+  db.sessions.set(mockSession.id, mockSession);
+
+  const updateData = {
+    id: mockSession.id
+    // No actual fields to update
+  };
+
+  const req = createMockRequest('PUT', 'http://localhost/session', updateData);
+  const response = await handleRequest(req);
+
+  const body = await assertSuccessResponse(response);
+  assertEquals(body.message, "No changes to apply");
+});
