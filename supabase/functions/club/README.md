@@ -30,10 +30,11 @@ Retrieves complete information about a specific club, including members, session
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `id` | string | Conditional* | The unique identifier of the club |
-| `server_id` | bigint | Yes | The Discord server ID where the club exists |
-| `discord_channel` | bigint | Conditional* | The Discord channel ID associated with the club |
+| `server_id` | text | No** | Optional Discord server ID (required when using discord_channel) |
+| `discord_channel` | text | Conditional* | The Discord channel ID associated with the club |
 
-**\*Note:** You must provide either `id` OR `discord_channel` (not both). When using `discord_channel`, `server_id` is required.
+**\*Note:** You must provide either `id` OR `discord_channel` (not both).
+**\*\*Note:** `server_id` becomes required when querying by `discord_channel` to prevent ambiguity.
 
 ### Request Examples
 
@@ -133,9 +134,9 @@ Creates a new book club with optional initial members, session, and shame list.
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `name` | string | Yes | The name of the club |
-| `server_id` | bigint | Yes | The Discord server ID where the club exists |
+| `server_id` | text | No | Optional Discord server ID (for Discord integration) |
 | `id` | string | No | Custom club ID (UUID generated if not provided) |
-| `discord_channel` | bigint | No | Discord channel ID for the club |
+| `discord_channel` | text | No | Discord channel ID for the club |
 | `members` | array | No | Array of member objects to add to the club |
 | `active_session` | object | No | Initial reading session with book and discussions |
 | `shame_list` | array | No | Array of member IDs to add to shame list |
@@ -247,9 +248,9 @@ Updates club information, including name, Discord channel, and shame list.
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `id` | string | Yes | The ID of the club to update |
-| `server_id` | bigint | Yes | The Discord server ID (for validation) |
+| `server_id` | text | No | Optional Discord server ID (for validation) |
 | `name` | string | No | New name for the club |
-| `discord_channel` | bigint | No | New Discord channel ID |
+| `discord_channel` | text | No | New Discord channel ID |
 | `shame_list` | array | No | Complete array of member IDs (replaces existing) |
 
 **Note:** At least one field to update (besides `id` and `server_id`) must be provided.
@@ -312,7 +313,7 @@ Permanently deletes a club and all associated data (cascading delete).
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `id` | string | Yes | The ID of the club to delete |
-| `server_id` | bigint | Yes | The Discord server ID (for validation) |
+| `server_id` | text | No | Optional Discord server ID (for validation) |
 
 ### Cascading Behavior
 

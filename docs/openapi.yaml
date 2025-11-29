@@ -1,0 +1,388 @@
+openapi: 3.0.0
+info:
+  title: Book Club API
+  description: Supabase Edge Functions API for managing book clubs across multiple Discord servers.
+  version: 1.0.0
+servers:
+  - url: http://localhost:54321/functions/v1
+    description: Local Development
+  - url: https://<project_ref>.supabase.co/functions/v1
+    description: Production
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+    Server:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Discord Snowflake ID
+        name:
+          type: string
+    Club:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        discord_channel:
+          type: string
+        server_id:
+          type: string
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/Member'
+        active_session:
+          $ref: '#/components/schemas/Session'
+    Member:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        points:
+          type: integer
+        books_read:
+          type: integer
+        user_id:
+          type: string
+          format: uuid
+        role:
+          type: string
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+        club_id:
+          type: string
+        book:
+          type: object
+          properties:
+            title:
+              type: string
+            author:
+              type: string
+            year:
+              type: integer
+        due_date:
+          type: string
+          format: date
+security:
+  - bearerAuth: []
+paths:
+  /club:
+    get:
+      summary: Retrieve Club Details
+      parameters:
+        - name: id
+          in: query
+          schema:
+            type: string
+          description: The unique identifier of the club
+        - name: discord_channel
+          in: query
+          schema:
+            type: string
+          description: Query by Discord Channel ID (requires server_id)
+        - name: server_id
+          in: query
+          schema:
+            type: string
+          description: The Discord Server ID (required if querying by channel)
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Club'
+        '404':
+          description: Club not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Create New Club
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                server_id:
+                  type: string
+                discord_channel:
+                  type: string
+                members:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Member'
+      responses:
+        '200':
+          description: Club created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  club:
+                    $ref: '#/components/schemas/Club'
+    put:
+      summary: Update Club
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                discord_channel:
+                  type: string
+                shame_list:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Club updated
+    delete:
+      summary: Delete Club
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: server_id
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted successfully
+
+  /member:
+    get:
+      summary: Retrieve Member Details
+      parameters:
+        - name: id
+          in: query
+          schema:
+            type: integer
+        - name: user_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Member details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+    post:
+      summary: Create New Member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                points:
+                  type: integer
+                clubs:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Member created
+    put:
+      summary: Update Member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+              properties:
+                id:
+                  type: integer
+                name:
+                  type: string
+                points:
+                  type: integer
+                clubs:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Member updated
+    delete:
+      summary: Delete Member
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Member deleted
+
+  /session:
+    get:
+      summary: Retrieve Session
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+    post:
+      summary: Create Session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - club_id
+                - book
+              properties:
+                club_id:
+                  type: string
+                due_date:
+                  type: string
+                  format: date
+                book:
+                  type: object
+                  required:
+                    - title
+                    - author
+                  properties:
+                    title:
+                      type: string
+                    author:
+                      type: string
+                    year:
+                      type: integer
+      responses:
+        '200':
+          description: Session created
+    put:
+      summary: Update Session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+              properties:
+                id:
+                  type: string
+                due_date:
+                  type: string
+                  format: date
+                book:
+                  type: object
+      responses:
+        '200':
+          description: Session updated
+    delete:
+      summary: Delete Session
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session deleted
+
+  /server:
+    get:
+      summary: Retrieve Servers
+      parameters:
+        - name: id
+          in: query
+          schema:
+            type: string
+          description: Optional Server ID
+      responses:
+        '200':
+          description: Server list or details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  servers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Server'
+    post:
+      summary: Register New Server
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Server registered

@@ -382,3 +382,32 @@ Deno.test("Member - PUT updates name only", async () => {
   assertEquals(body.success, true);
   assertEquals(body.member.name, "Updated Name");
 });
+
+Deno.test("Member - PUT returns 400 when id missing", async () => {
+  setupTest();
+
+  const updateData = {
+    name: "Updated Name"
+  };
+
+  const req = createMockRequest('PUT', 'http://localhost/member', updateData);
+  const response = await handleRequest(req);
+
+  await assertErrorResponse(response, 400, 'Member ID is required');
+});
+
+Deno.test("Member - PUT returns 200 with message when no changes", async () => {
+  setupTest();
+  db.members.set(mockMember.id, { ...mockMember });
+
+  const updateData = {
+    id: mockMember.id
+    // No actual fields to update
+  };
+
+  const req = createMockRequest('PUT', 'http://localhost/member', updateData);
+  const response = await handleRequest(req);
+
+  const body = await assertSuccessResponse(response);
+  assertEquals(body.message, "No changes to apply");
+});
