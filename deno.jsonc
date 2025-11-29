@@ -18,7 +18,10 @@
     "test:integration:session": "deno test tests/integration/session.test.ts --allow-net --allow-env",
 
     // Run all tests (unit + integration)
-    "test:all": "deno task test && deno task test:integration"
+    "test:all": "deno task test && deno task test:integration",
+
+    // Documentation server
+    "docs": "deno run --allow-net --allow-read https://deno.land/std@0.168.0/http/file_server.ts docs/ --port 8080"
   },
   "compilerOptions": {
     "lib": ["deno.window"],

@@ -33,6 +33,11 @@ deno task test:integration:server # Test server endpoint integration
 deno task test:all                # Run both unit and integration tests
 ```
 
+### Documentation
+```bash
+deno task docs                    # Serve API documentation at http://localhost:8080
+```
+
 ### Database
 ```bash
 supabase db pull                  # Pull schema from production
@@ -67,21 +72,31 @@ The API supports a **single bot instance serving multiple Discord servers** with
 
 ### Edge Functions Structure
 
-Each endpoint (`server/`, `club/`, `member/`, `session/`) follows the same pattern:
+Each endpoint (`server/`, `club/`, `member/`, `session/`) follows a **modular pattern**:
 
 ```
 supabase/functions/<endpoint>/
-├── index.ts           # Main handler with CRUD operations
-├── index.test.ts      # Unit tests with mocked Supabase client
-└── README.md          # Endpoint-specific API documentation
+├── index.ts              # Main routing handler (~70 lines)
+├── index.test.ts         # Unit tests with mocked Supabase client
+├── handlers/             # Modular CRUD operation handlers
+│   ├── get.ts           # GET request handler
+│   ├── create.ts        # POST request handler
+│   ├── update.ts        # PUT request handler
+│   └── delete.ts        # DELETE request handler
+├── utils/                # Shared utilities
+│   ├── responses.ts     # Response formatting (errorResponse, successResponse, corsHeaders)
+│   └── validation.ts    # Validation functions (e.g., validateServer)
+└── README.md             # Endpoint-specific API documentation
 ```
 
 **Common patterns in all endpoints:**
-- Export `handler(req: Request, supabaseClient?: SupabaseClient)` for testability
+- Main `index.ts` exports `handler(req: Request, supabaseClient?: SupabaseClient)` for testability
+- Handler functions are extracted into separate files in `handlers/` directory
+- Shared utilities centralized in `utils/` directory
 - Use `if (import.meta.main)` guard to prevent server start during imports
 - Include CORS headers in all responses
 - Return JSON with appropriate HTTP status codes
-- Log operations with endpoint-specific prefixes (e.g., `[CLUB-GET]`)
+- Log operations with endpoint-specific prefixes (e.g., `[CLUB-GET]`, `[MEMBER-POST]`)
 
 ### Testing Strategy
 
