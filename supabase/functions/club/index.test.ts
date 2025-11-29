@@ -60,13 +60,17 @@ Deno.test("Club - GET returns 400 when club ID missing", async () => {
   await assertErrorResponse(response, 400, 'Club ID is required');
 });
 
-Deno.test("Club - GET returns 400 when server ID missing", async () => {
+Deno.test("Club - GET works without server_id (mobile use case)", async () => {
   setupTest();
+  // Add a club without server_id for mobile testing
+  db.clubs.set('mobile-club-1', { id: 'mobile-club-1', name: 'Mobile Book Club', discord_channel: null, server_id: null });
 
-  const req = createMockRequest('GET', 'http://localhost/club?id=club-1');
+  const req = createMockRequest('GET', 'http://localhost/club?id=mobile-club-1');
   const response = await handleRequest(req);
 
-  await assertErrorResponse(response, 400, 'Server ID is required');
+  const body = await assertSuccessResponse(response);
+  assertEquals(body.id, 'mobile-club-1');
+  assertEquals(body.server_id, null);
 });
 
 Deno.test("Club - GET returns 404 when server not found", async () => {
@@ -191,13 +195,16 @@ Deno.test("Club - POST returns 400 when name missing", async () => {
   await assertErrorResponse(response, 400, 'Club name is required');
 });
 
-Deno.test("Club - POST returns 400 when server_id missing", async () => {
+Deno.test("Club - POST creates club without server_id (mobile use case)", async () => {
   setupTest();
 
-  const req = createMockRequest('POST', 'http://localhost/club', { name: "Test" });
+  const req = createMockRequest('POST', 'http://localhost/club', { name: "Mobile Club" });
   const response = await handleRequest(req);
 
-  await assertErrorResponse(response, 400, 'Server ID is required');
+  const body = await assertSuccessResponse(response);
+  assertEquals(body.success, true);
+  assertEquals(body.club.name, "Mobile Club");
+  assertEquals(body.club.server_id, null);
 });
 
 Deno.test("Club - POST returns 404 when server not found", async () => {
@@ -382,11 +389,16 @@ Deno.test("Club - PUT returns 400 when shame_list is not an array", async () => 
   await assertErrorResponse(response, 400);
 });
 
-Deno.test("Club - DELETE returns 400 when server_id missing", async () => {
-  const req = createMockRequest('DELETE', `http://localhost/club?id=${mockClub.id}`);
+Deno.test("Club - DELETE works without server_id (mobile use case)", async () => {
+  setupTest();
+  // Add a mobile club without server_id
+  db.clubs.set('mobile-club-delete', { id: 'mobile-club-delete', name: 'Mobile Club to Delete', discord_channel: null, server_id: null });
+
+  const req = createMockRequest('DELETE', `http://localhost/club?id=mobile-club-delete`);
   const response = await handleRequest(req);
 
-  await assertErrorResponse(response, 400);
+  const body = await assertSuccessResponse(response);
+  assertEquals(body.success, true);
 });
 
 Deno.test("Club - POST creates club without discord_channel", async () => {
