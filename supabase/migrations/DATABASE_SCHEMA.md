@@ -4,8 +4,8 @@ Complete database schema documentation for the Book Club API, including table st
 
 ## Schema Version
 
-**Current Version:** Multi-Server Architecture (PR #2)  
-**Last Updated:** October 2025
+**Current Version:** Multi-Server Architecture + Metadata Fields
+**Last Updated:** November 2025
 
 ## Quick Reference
 
@@ -54,6 +54,7 @@ Book clubs that exist within Discord servers.
 | `name` | text | NOT NULL | Club name |
 | `discord_channel` | bigint | | Discord channel ID for the club |
 | `server_id` | bigint | FOREIGN KEY → Servers(id), NOT NULL | Parent Discord server |
+| `founded_date` | date | | Date when the club was established |
 
 **Indexes:**
 - Primary key on `id`
@@ -83,6 +84,7 @@ Individual members who can join multiple clubs.
 | `books_read` | integer | DEFAULT 0 | Total books completed |
 | `user_id` | uuid | UNIQUE | Supabase auth user ID (optional) |
 | `role` | text | | Member role (e.g., "admin", "member") |
+| `created_at` | timestamp with time zone | DEFAULT NOW() | Timestamp when member was created |
 
 **Indexes:**
 - Primary key on `id`
@@ -132,6 +134,7 @@ Book information shared across sessions.
 | `edition` | text | | Book edition |
 | `year` | integer | | Publication year (can be negative for BCE) |
 | `isbn` | text | | ISBN number |
+| `page_count` | integer | | Number of pages in the book |
 
 **Indexes:**
 - Primary key on `id`

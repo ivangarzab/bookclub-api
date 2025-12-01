@@ -60,6 +60,7 @@ curl --request GET \
   "name": "Freaks & Geeks",
   "discord_channel": 987654321098765432,
   "server_id": 1039326367428395038,
+  "founded_date": "2024-01-15",
   "members": [
     {
       "id": 1,
@@ -67,7 +68,8 @@ curl --request GET \
       "points": 250,
       "books_read": 20,
       "user_id": "uuid-here-if-linked",
-      "role": "admin"
+      "role": "admin",
+      "created_at": "2024-01-15T10:30:00+00:00"
     }
   ],
   "active_session": {
@@ -81,7 +83,8 @@ curl --request GET \
       "author": "Plato",
       "edition": "Reeve Edition",
       "year": -380,
-      "ISBN": "978-0872207363"
+      "ISBN": "978-0872207363",
+      "page_count": 416
     },
     "discussions": [
       {
@@ -137,6 +140,7 @@ Creates a new book club with optional initial members, session, and shame list.
 | `server_id` | text | No | Optional Discord server ID (for Discord integration) |
 | `id` | string | No | Custom club ID (UUID generated if not provided) |
 | `discord_channel` | text | No | Discord channel ID for the club |
+| `founded_date` | string (date) | No | Date when the club was established (ISO 8601: YYYY-MM-DD) |
 | `members` | array | No | Array of member objects to add to the club |
 | `active_session` | object | No | Initial reading session with book and discussions |
 | `shame_list` | array | No | Array of member IDs to add to shame list |
@@ -163,7 +167,8 @@ Creates a new book club with optional initial members, session, and shame list.
     "author": "Author Name",
     "edition": "Edition Name",
     "year": 2024,
-    "isbn": "978-1234567890"
+    "isbn": "978-1234567890",
+    "page_count": 350
   },
   "discussions": [
     {
@@ -251,6 +256,7 @@ Updates club information, including name, Discord channel, and shame list.
 | `server_id` | text | No | Optional Discord server ID (for validation) |
 | `name` | string | No | New name for the club |
 | `discord_channel` | text | No | New Discord channel ID |
+| `founded_date` | string (date) | No | Date when the club was established (ISO 8601: YYYY-MM-DD) |
 | `shame_list` | array | No | Complete array of member IDs (replaces existing) |
 
 **Note:** At least one field to update (besides `id` and `server_id`) must be provided.

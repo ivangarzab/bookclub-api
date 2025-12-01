@@ -44,12 +44,13 @@ export async function handleCreateClub(req: Request, supabaseClient: SupabaseCli
       console.log(`[CLUB-POST] Using provided club ID: "${data.id}"`)
     }
 
-    // Insert club data with optional server_id
+    // Insert club data with optional server_id and founded_date
     console.log(`[CLUB-POST] Inserting club data:`, {
       id: data.id,
       name: data.name,
       discord_channel: data.discord_channel || null,
-      server_id: data.server_id || null
+      server_id: data.server_id || null,
+      founded_date: data.founded_date || null
     })
 
     const { data: clubData, error: clubError } = await supabaseClient
@@ -58,7 +59,8 @@ export async function handleCreateClub(req: Request, supabaseClient: SupabaseCli
         id: data.id,
         name: data.name,
         discord_channel: data.discord_channel || null,
-        server_id: data.server_id || null  // Allow NULL for mobile-only clubs
+        server_id: data.server_id || null,  // Allow NULL for mobile-only clubs
+        founded_date: data.founded_date || null
       })
       .select()
 
@@ -143,7 +145,8 @@ export async function handleCreateClub(req: Request, supabaseClient: SupabaseCli
           author: book.author,
           edition: book.edition || null,
           year: book.year || null,
-          isbn: book.isbn || null
+          isbn: book.isbn || null,
+          page_count: book.page_count || null
         })
         .select()
 

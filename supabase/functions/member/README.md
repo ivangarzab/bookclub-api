@@ -60,6 +60,7 @@ curl --request GET \
   "books_read": 20,
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
   "role": "admin",
+  "created_at": "2024-01-15T10:30:00+00:00",
   "clubs": [
     {
       "id": "club-1",
@@ -119,6 +120,8 @@ Creates a new member with optional club associations.
 | `role` | string | No | Member role (e.g., "admin", "member") |
 | `clubs` | array | No | Array of club IDs to associate the member with |
 
+**Note:** The `created_at` field is automatically set by the database when a member is created and cannot be manually specified.
+
 ### Request Example
 
 ```bash
@@ -146,6 +149,7 @@ curl --request POST \
   "books_read": 3,
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
   "role": "member",
+  "created_at": "2025-11-30T20:59:15.123456+00:00",
   "clubs": ["club-1", "club-2"]
 }
 ```

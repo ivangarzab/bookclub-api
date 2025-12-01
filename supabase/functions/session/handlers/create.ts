@@ -71,7 +71,8 @@ export async function handleCreateSession(req: Request, supabaseClient: Supabase
       author: data.book.author,
       edition: data.book.edition || null,
       year: data.book.year || null,
-      isbn: data.book.isbn || null
+      isbn: data.book.isbn || null,
+      page_count: data.book.page_count || null
     });
 
     const { data: bookData, error: bookError } = await supabaseClient
@@ -81,7 +82,8 @@ export async function handleCreateSession(req: Request, supabaseClient: Supabase
         author: data.book.author,
         edition: data.book.edition || null,
         year: data.book.year || null,
-        isbn: data.book.isbn || null
+        isbn: data.book.isbn || null,
+        page_count: data.book.page_count || null
       })
       .select()
 

@@ -59,7 +59,8 @@ curl --request GET \
     "author": "Plato",
     "edition": "Reeve Edition",
     "year": -380,
-    "ISBN": "978-0872207363"
+    "ISBN": "978-0872207363",
+    "page_count": 416
   },
   "discussions": [
     {
@@ -122,6 +123,7 @@ Creates a new reading session with a book and optional discussions.
 | `edition` | string | No | Book edition |
 | `year` | integer | No | Publication year |
 | `isbn` | string | No | ISBN number |
+| `page_count` | integer | No | Number of pages in the book |
 
 #### Discussion Object Structure
 
@@ -147,7 +149,8 @@ curl --request POST \
       "author": "Frank Herbert",
       "edition": "Paperback",
       "year": 1965,
-      "isbn": "978-0441013593"
+      "isbn": "978-0441013593",
+      "page_count": 688
     },
     "discussions": [
       {

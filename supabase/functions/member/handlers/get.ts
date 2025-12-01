@@ -168,6 +168,7 @@ export async function handleGetMember(req: Request, supabaseClient: SupabaseClie
       books_read: memberData.books_read,
       user_id: memberData.user_id,
       role: memberData.role,
+      created_at: memberData.created_at,
       clubs: clubs,
       shame_clubs: shameClubs
     };
