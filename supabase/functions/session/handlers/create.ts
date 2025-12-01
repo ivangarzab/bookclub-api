@@ -3,6 +3,7 @@
 
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { errorResponse, successResponse } from '../utils/responses.ts'
+import { validateDiscussionsArray } from '../utils/validation.ts'
 
 /**
  * Handles POST requests to create a new session
@@ -29,6 +30,20 @@ export async function handleCreateSession(req: Request, supabaseClient: Supabase
     if (!data.book.title || !data.book.author) {
       console.log(`[SESSION-POST] Missing book title/author - returning 400`);
       return errorResponse('Book title and author are required', 400)
+    }
+
+    // Validate discussions if provided
+    if (data.discussions !== undefined) {
+      if (data.discussions === null) {
+        console.log(`[SESSION-POST] Discussions cannot be null - returning 400`);
+        return errorResponse('Discussions must be an array or omitted', 400)
+      }
+
+      const validation = validateDiscussionsArray(data.discussions)
+      if (!validation.valid) {
+        console.log(`[SESSION-POST] Invalid discussion at index ${validation.invalidIndex} - returning 400`);
+        return errorResponse(validation.error || 'Invalid discussion data', 400)
+      }
     }
 
     // Check if club exists
@@ -126,11 +141,6 @@ export async function handleCreateSession(req: Request, supabaseClient: Supabase
       console.log(`[SESSION-POST] Processing ${data.discussions.length} discussions...`);
 
       for (const discussion of data.discussions) {
-        if (!discussion.title || !discussion.date) {
-          console.log(`[SESSION-POST] Skipping invalid discussion:`, discussion);
-          continue; // Skip invalid discussions
-        }
-
         const discussionId = discussion.id || crypto.randomUUID();
         console.log(`[SESSION-POST] Inserting discussion:`, {
           id: discussionId,
@@ -161,7 +171,8 @@ export async function handleCreateSession(req: Request, supabaseClient: Supabase
         });
 
         if (discussionError) {
-          console.error(`[SESSION-POST] Error adding discussion: ${discussionError.message}`);
+          console.error(`[SESSION-POST] Warning: Discussion insert failed: ${discussionError.message}`);
+          // Continue - discussions are optional, don't fail session creation
           continue;
         }
 

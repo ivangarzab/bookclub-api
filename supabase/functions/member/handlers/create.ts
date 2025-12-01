@@ -111,22 +111,8 @@ export async function handleCreateMember(req: Request, supabaseClient: SupabaseC
       });
 
       if (clubsError) {
-        console.log(`[MEMBER-POST] Club verification failed - returning partial success`);
-        return new Response(
-          JSON.stringify({
-            error: clubsError.message,
-            partial_success: true,
-            message: "Member created but failed to verify clubs",
-            member: memberData[0]
-          }),
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              ...corsHeaders
-            },
-            status: 500
-          }
-        )
+        console.log(`[MEMBER-POST] Club verification failed - returning error`);
+        return errorResponse(clubsError.message, 500)
       }
 
       // Check if all club IDs exist
@@ -139,22 +125,8 @@ export async function handleCreateMember(req: Request, supabaseClient: SupabaseC
       });
 
       if (nonExistentClubs.length > 0) {
-        console.log(`[MEMBER-POST] Some clubs don't exist - returning partial success`);
-        return new Response(
-          JSON.stringify({
-            error: `The following clubs do not exist: ${nonExistentClubs.join(', ')}`,
-            partial_success: true,
-            message: "Member created but not associated with all clubs",
-            member: memberData[0]
-          }),
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              ...corsHeaders
-            },
-            status: 400
-          }
-        )
+        console.log(`[MEMBER-POST] Some clubs don't exist - returning error`);
+        return errorResponse(`The following clubs do not exist: ${nonExistentClubs.join(', ')}`, 400)
       }
 
       // Insert club associations
@@ -175,22 +147,8 @@ export async function handleCreateMember(req: Request, supabaseClient: SupabaseC
       });
 
       if (associationError) {
-        console.log(`[MEMBER-POST] Club associations failed - returning partial success`);
-        return new Response(
-          JSON.stringify({
-            error: associationError.message,
-            partial_success: true,
-            message: "Member created but failed to associate with clubs",
-            member: memberData[0]
-          }),
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              ...corsHeaders
-            },
-            status: 500
-          }
-        )
+        console.log(`[MEMBER-POST] Club associations failed - returning error`);
+        return errorResponse(associationError.message, 500)
       }
     } else {
       console.log(`[MEMBER-POST] No club associations to process`);

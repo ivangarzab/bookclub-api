@@ -84,6 +84,7 @@ curl --request GET \
 **400 Bad Request** - Missing required parameter
 ```json
 {
+  "success": false,
   "error": "Session ID is required"
 }
 ```
@@ -91,6 +92,7 @@ curl --request GET \
 **404 Not Found** - Session not found
 ```json
 {
+  "success": false,
   "error": "Session not found"
 }
 ```
@@ -206,13 +208,25 @@ curl --request POST \
 **400 Bad Request** - Missing required fields
 ```json
 {
+  "success": false,
   "error": "Club ID and book information are required"
 }
 ```
 
+**400 Bad Request** - Invalid discussion data
+```json
+{
+  "success": false,
+  "error": "Discussion title is required and must be a non-empty string"
+}
+```
+
+**Note**: All discussions in the request are validated upfront. If any discussion is missing required fields (title or date) or has empty values, the entire request fails with HTTP 400 before any database operations occur.
+
 **404 Not Found** - Invalid club_id
 ```json
 {
+  "success": false,
   "error": "Club not found"
 }
 ```
@@ -377,6 +391,7 @@ curl --request DELETE \
 **400 Bad Request** - Missing required parameter
 ```json
 {
+  "success": false,
   "error": "Session ID is required"
 }
 ```
@@ -384,6 +399,7 @@ curl --request DELETE \
 **404 Not Found** - Session not found
 ```json
 {
+  "success": false,
   "error": "Session not found"
 }
 ```

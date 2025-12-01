@@ -88,6 +88,7 @@ curl --request GET \
 **400 Bad Request** - Missing required parameters
 ```json
 {
+  "success": false,
   "error": "Either Member ID or User ID is required"
 }
 ```
@@ -95,6 +96,7 @@ curl --request GET \
 **404 Not Found** - Member not found
 ```json
 {
+  "success": false,
   "error": "Member not found"
 }
 ```
@@ -148,36 +150,30 @@ curl --request POST \
 }
 ```
 
-### Partial Success Response
-
-If the member is created but some club associations fail:
-
-```json
-{
-  "partial_success": true,
-  "message": "Member created but some club associations failed",
-  "member": {
-    "id": 7,
-    "name": "New Member",
-    "points": 50,
-    "books_read": 3
-  },
-  "failed_clubs": ["club-3"]
-}
-```
-
 ### Error Responses
 
 **400 Bad Request** - Missing required fields
 ```json
 {
+  "success": false,
   "error": "Member name is required"
 }
 ```
 
+**400 Bad Request** - Invalid club associations
+```json
+{
+  "success": false,
+  "error": "The following clubs do not exist: club-3, club-4"
+}
+```
+
+**Note**: Club associations are validated upfront. If any club ID doesn't exist, the entire request fails with HTTP 400 before creating the member.
+
 **500 Internal Server Error** - Creation failed
 ```json
 {
+  "success": false,
   "error": "Failed to create member: [error details]"
 }
 ```
@@ -267,6 +263,7 @@ If no actual changes were applied:
 **400 Bad Request** - Missing required fields or no updates
 ```json
 {
+  "success": false,
   "error": "Member ID is required"
 }
 ```
@@ -274,6 +271,7 @@ If no actual changes were applied:
 **404 Not Found** - Member not found
 ```json
 {
+  "success": false,
   "error": "Member not found"
 }
 ```
@@ -321,6 +319,7 @@ curl --request DELETE \
 **400 Bad Request** - Missing required parameter
 ```json
 {
+  "success": false,
   "error": "Member ID is required"
 }
 ```
@@ -328,6 +327,7 @@ curl --request DELETE \
 **404 Not Found** - Member not found
 ```json
 {
+  "success": false,
   "error": "Member not found"
 }
 ```
