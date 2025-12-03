@@ -14,7 +14,12 @@ ADD COLUMN page_count INTEGER;
 ALTER TABLE members
 ADD COLUMN created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 
+-- Add handle to members table
+ALTER TABLE members
+ADD COLUMN handle TEXT;
+
 -- Add comments for documentation
 COMMENT ON COLUMN clubs.founded_date IS 'Date when the club was established';
 COMMENT ON COLUMN books.page_count IS 'Number of pages in the book';
 COMMENT ON COLUMN members.created_at IS 'Timestamp when the member account was created';
+COMMENT ON COLUMN members.handle IS 'User handle or username for display';

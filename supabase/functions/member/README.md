@@ -60,6 +60,7 @@ curl --request GET \
   "books_read": 20,
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
   "role": "admin",
+  "handle": "ivangarza",
   "created_at": "2024-01-15T10:30:00+00:00",
   "clubs": [
     {
@@ -118,6 +119,7 @@ Creates a new member with optional club associations.
 | `points` | integer | No | Initial points (defaults to 0) |
 | `books_read` | integer | No | Initial books read count (defaults to 0) |
 | `role` | string | No | Member role (e.g., "admin", "member") |
+| `handle` | string | No | User handle or username for display |
 | `clubs` | array | No | Array of club IDs to associate the member with |
 
 **Note:** The `created_at` field is automatically set by the database when a member is created and cannot be manually specified.
@@ -135,6 +137,7 @@ curl --request POST \
     "points": 50,
     "books_read": 3,
     "role": "member",
+    "handle": "newmember",
     "clubs": ["club-1", "club-2"]
   }'
 ```
@@ -149,6 +152,7 @@ curl --request POST \
   "books_read": 3,
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
   "role": "member",
+  "handle": "newmember",
   "created_at": "2025-11-30T20:59:15.123456+00:00",
   "clubs": ["club-1", "club-2"]
 }
@@ -198,6 +202,7 @@ Updates member information and/or club associations.
 | `books_read` | integer | No | New books read count |
 | `user_id` | uuid | No | Link or update Supabase auth user ID |
 | `role` | string | No | Update member role |
+| `handle` | string | No | Update user handle or username |
 | `clubs` | array | No | Complete array of club IDs (replaces all associations) |
 
 **Note:** At least one field to update (besides `id`) must be provided.

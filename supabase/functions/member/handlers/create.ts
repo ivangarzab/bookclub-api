@@ -62,7 +62,8 @@ export async function handleCreateMember(req: Request, supabaseClient: SupabaseC
       id: memberId,
       name: data.name,
       points: data.points || 0,
-      books_read: data.books_read || 0
+      books_read: data.books_read || 0,
+      handle: data.handle || null
     });
 
     const { data: memberData, error: memberError } = await supabaseClient
@@ -71,7 +72,8 @@ export async function handleCreateMember(req: Request, supabaseClient: SupabaseC
         id: memberId,
         name: data.name,
         points: data.points || 0,
-        books_read: data.books_read || 0
+        books_read: data.books_read || 0,
+        handle: data.handle || null
       })
       .select()
 

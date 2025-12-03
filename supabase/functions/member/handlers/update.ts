@@ -44,6 +44,7 @@ export async function handleUpdateMember(req: Request, supabaseClient: SupabaseC
     if (data.name !== undefined) updateData.name = data.name
     if (data.points !== undefined) updateData.points = data.points
     if (data.books_read !== undefined) updateData.books_read = data.books_read
+    if (data.handle !== undefined) updateData.handle = data.handle
 
     console.log(`[MEMBER-PUT] Member update data prepared:`, updateData);
 

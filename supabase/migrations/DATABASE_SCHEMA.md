@@ -84,6 +84,7 @@ Individual members who can join multiple clubs.
 | `books_read` | integer | DEFAULT 0 | Total books completed |
 | `user_id` | uuid | UNIQUE | Supabase auth user ID (optional) |
 | `role` | text | | Member role (e.g., "admin", "member") |
+| `handle` | text | | User handle or username for display |
 | `created_at` | timestamp with time zone | DEFAULT NOW() | Timestamp when member was created |
 
 **Indexes:**

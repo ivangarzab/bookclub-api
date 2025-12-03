@@ -16,17 +16,17 @@ INSERT INTO Clubs (id, name, discord_channel, server_id, founded_date) VALUES
 ('club-4', 'Mystery Readers', '555666777888999000', '1234567890123456789', '2024-04-05'),
 ('club-5', 'Sci-Fi Enthusiasts', '111222333444555666', '987654321098765432', '2024-05-12');
 
--- Insert sample members (now with user_id, role, and created_at)
+-- Insert sample members (now with user_id, role, handle, and created_at)
 -- Note: created_at has DEFAULT NOW() in schema, but we can override for consistent test data
-INSERT INTO Members (id, name, points, books_read, user_id, role, created_at) VALUES
-(1, 'Ivan Garza', 250, 20, '550e8400-e29b-41d4-a716-446655440000', 'admin', '2024-01-15T10:30:00+00:00'),
-(2, 'Monica Morales', 120, 8, NULL, 'member', '2024-01-20T14:15:00+00:00'),
-(3, 'Marco Rivera', 150, 12, NULL, 'member', '2024-02-01T09:00:00+00:00'),
-(4, 'Anacleto Longoria', 60, 4, NULL, 'member', '2024-02-10T16:45:00+00:00'),
-(5, 'Joel Salinas', 200, 15, '550e8400-e29b-41d4-a716-446655440001', 'admin', '2024-02-15T11:20:00+00:00'),
-(6, 'Jorge Longoria', 75, 5, NULL, 'member', '2024-03-01T13:30:00+00:00'),
-(7, 'Test User Alpha', 50, 3, '550e8400-e29b-41d4-a716-446655440002', 'member', '2024-03-15T08:45:00+00:00'),
-(8, 'Test User Beta', 180, 11, '550e8400-e29b-41d4-a716-446655440003', 'member', '2024-04-01T15:00:00+00:00');
+INSERT INTO Members (id, name, points, books_read, user_id, role, handle, created_at) VALUES
+(1, 'Ivan Garza', 250, 20, '550e8400-e29b-41d4-a716-446655440000', 'admin', 'ivangarza', '2024-01-15T10:30:00+00:00'),
+(2, 'Monica Morales', 120, 8, NULL, 'member', 'monicam', '2024-01-20T14:15:00+00:00'),
+(3, 'Marco Rivera', 150, 12, NULL, 'member', 'marcorivera', '2024-02-01T09:00:00+00:00'),
+(4, 'Anacleto Longoria', 60, 4, NULL, 'member', 'anacleto', '2024-02-10T16:45:00+00:00'),
+(5, 'Joel Salinas', 200, 15, '550e8400-e29b-41d4-a716-446655440001', 'admin', 'joelsalinas', '2024-02-15T11:20:00+00:00'),
+(6, 'Jorge Longoria', 75, 5, NULL, 'member', 'jorgelongoria', '2024-03-01T13:30:00+00:00'),
+(7, 'Test User Alpha', 50, 3, '550e8400-e29b-41d4-a716-446655440002', 'member', 'testalpha', '2024-03-15T08:45:00+00:00'),
+(8, 'Test User Beta', 180, 11, '550e8400-e29b-41d4-a716-446655440003', 'member', 'testbeta', '2024-04-01T15:00:00+00:00');
 
 -- Connect members to clubs
 INSERT INTO MemberClubs (member_id, club_id) VALUES

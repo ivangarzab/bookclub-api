@@ -176,6 +176,7 @@ async function getFullClubDetails(supabaseClient: SupabaseClient, clubId: string
           name: member.name,
           points: member.points,
           books_read: member.books_read,
+          handle: member.handle,
           created_at: member.created_at,
           clubs: memberClubs?.map((mc: Record<string, unknown>) => mc.club_id) || []
         }
