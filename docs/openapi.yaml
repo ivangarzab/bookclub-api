@@ -3,6 +3,9 @@ info:
   title: Book Club API
   description: Supabase Edge Functions API for managing book clubs across multiple Discord servers.
   version: 1.0.0
+  x-logo:
+  url: './mark-colorful.png'
+  altText: 'Book Club Logo'
 servers:
   - url: http://localhost:54321/functions/v1
     description: Local Development
