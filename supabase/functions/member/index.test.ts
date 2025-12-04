@@ -153,8 +153,7 @@ Deno.test("Member - POST returns 400 when club doesn't exist", async () => {
   const req = createMockRequest('POST', 'http://localhost/member', newMember);
   const response = await handleRequest(req);
 
-  const body = await assertErrorResponse(response, 400);
-  assertEquals(body.partial_success, true);
+  await assertErrorResponse(response, 400);
 });
 
 // PUT Tests

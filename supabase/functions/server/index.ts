@@ -39,7 +39,10 @@ export async function handler(req: Request, supabaseClient?: SupabaseClient): Pr
       default:
         console.log(`[SERVER] Method not allowed: ${req.method}`);
         return new Response(
-          JSON.stringify({ error: 'Method not allowed' }),
+          JSON.stringify({
+            success: false,
+            error: 'Method not allowed'
+          }),
           {
             headers: {
               'Content-Type': 'application/json',

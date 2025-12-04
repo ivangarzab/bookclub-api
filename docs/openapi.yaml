@@ -61,6 +61,11 @@ components:
           format: uuid
         role:
           type: string
+        handle:
+          type: string
+        created_at:
+          type: string
+          format: date-time
     Session:
       type: object
       properties:
@@ -223,6 +228,15 @@ paths:
                   type: string
                 points:
                   type: integer
+                books_read:
+                  type: integer
+                user_id:
+                  type: string
+                  format: uuid
+                role:
+                  type: string
+                handle:
+                  type: string
                 clubs:
                   type: array
                   items:
@@ -247,6 +261,15 @@ paths:
                   type: string
                 points:
                   type: integer
+                books_read:
+                  type: integer
+                user_id:
+                  type: string
+                  format: uuid
+                role:
+                  type: string
+                handle:
+                  type: string
                 clubs:
                   type: array
                   items:

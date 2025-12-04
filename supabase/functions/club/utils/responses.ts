@@ -12,7 +12,10 @@ const corsHeaders = {
  */
 export function errorResponse(message: string, status: number = 400): Response {
   return new Response(
-    JSON.stringify({ error: message }),
+    JSON.stringify({
+      success: false,
+      error: message
+    }),
     {
       headers: {
         'Content-Type': 'application/json',
