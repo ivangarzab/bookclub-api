@@ -161,7 +161,8 @@ export async function handleGetSession(req: Request, supabaseClient: SupabaseCli
         author: bookData.author,
         edition: bookData.edition,
         year: bookData.year,
-        isbn: bookData.isbn
+        isbn: bookData.isbn,
+        page_count: bookData.page_count
       },
       due_date: sessionData.due_date,
       discussions: discussionsData.map(discussion => ({

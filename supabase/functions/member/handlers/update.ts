@@ -44,6 +44,7 @@ export async function handleUpdateMember(req: Request, supabaseClient: SupabaseC
     if (data.name !== undefined) updateData.name = data.name
     if (data.points !== undefined) updateData.points = data.points
     if (data.books_read !== undefined) updateData.books_read = data.books_read
+    if (data.handle !== undefined) updateData.handle = data.handle
 
     console.log(`[MEMBER-PUT] Member update data prepared:`, updateData);
 
@@ -85,21 +86,7 @@ export async function handleUpdateMember(req: Request, supabaseClient: SupabaseC
 
       if (!Array.isArray(data.clubs)) {
         console.log(`[MEMBER-PUT] Invalid clubs format - returning 400`);
-        return new Response(
-          JSON.stringify({
-            error: 'Clubs must be an array',
-            partial_success: Object.keys(updateData).length > 0,
-            message: "Some member fields updated but clubs not modified",
-            member: updatedMember
-          }),
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              ...corsHeaders
-            },
-            status: 400
-          }
-        )
+        return errorResponse('Clubs must be an array', 400)
       }
 
       // Get existing club associations
@@ -117,21 +104,7 @@ export async function handleUpdateMember(req: Request, supabaseClient: SupabaseC
 
       if (getError) {
         console.log(`[MEMBER-PUT] Failed to get existing associations - returning 500`);
-        return new Response(
-          JSON.stringify({
-            error: getError.message,
-            partial_success: Object.keys(updateData).length > 0,
-            message: "Member updated but failed to retrieve existing club associations",
-            member: updatedMember
-          }),
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              ...corsHeaders
-            },
-            status: 500
-          }
-        )
+        return errorResponse(getError.message, 500)
       }
 
       const existingClubIds = existingAssociations.map(a => a.club_id);
@@ -166,21 +139,7 @@ export async function handleUpdateMember(req: Request, supabaseClient: SupabaseC
 
         if (verifyError) {
           console.log(`[MEMBER-PUT] Club verification failed - returning 500`);
-          return new Response(
-            JSON.stringify({
-              error: verifyError.message,
-              partial_success: Object.keys(updateData).length > 0,
-              message: "Member updated but failed to verify club IDs",
-              member: updatedMember
-            }),
-            {
-              headers: {
-                'Content-Type': 'application/json',
-                ...corsHeaders
-              },
-              status: 500
-            }
-          )
+          return errorResponse(verifyError.message, 500)
         }
 
         const validClubIds = validClubs.map(c => c.id);
@@ -193,21 +152,7 @@ export async function handleUpdateMember(req: Request, supabaseClient: SupabaseC
 
         if (invalidClubs.length > 0) {
           console.log(`[MEMBER-PUT] Some clubs don't exist - returning 400`);
-          return new Response(
-            JSON.stringify({
-              error: `The following clubs do not exist: ${invalidClubs.join(', ')}`,
-              partial_success: Object.keys(updateData).length > 0,
-              message: "Member updated but clubs not completely modified",
-              member: updatedMember
-            }),
-            {
-              headers: {
-                'Content-Type': 'application/json',
-                ...corsHeaders
-              },
-              status: 400
-            }
-          )
+          return errorResponse(`The following clubs do not exist: ${invalidClubs.join(', ')}`, 400)
         }
 
         // Add new associations
@@ -230,21 +175,7 @@ export async function handleUpdateMember(req: Request, supabaseClient: SupabaseC
 
           if (addError) {
             console.log(`[MEMBER-PUT] Failed to add new associations - returning 500`);
-            return new Response(
-              JSON.stringify({
-                error: addError.message,
-                partial_success: Object.keys(updateData).length > 0,
-                message: "Member updated but failed to add new club associations",
-                member: updatedMember
-              }),
-              {
-                headers: {
-                  'Content-Type': 'application/json',
-                  ...corsHeaders
-                },
-                status: 500
-              }
-            )
+            return errorResponse(addError.message, 500)
           }
 
           clubsUpdated = true;
@@ -268,21 +199,7 @@ export async function handleUpdateMember(req: Request, supabaseClient: SupabaseC
 
         if (removeError) {
           console.log(`[MEMBER-PUT] Failed to remove associations - returning 500`);
-          return new Response(
-            JSON.stringify({
-              error: removeError.message,
-              partial_success: Object.keys(updateData).length > 0 || clubsToAdd.length > 0,
-              message: "Member updated but failed to remove some club associations",
-              member: updatedMember
-            }),
-            {
-              headers: {
-                'Content-Type': 'application/json',
-                ...corsHeaders
-              },
-              status: 500
-            }
-          )
+          return errorResponse(removeError.message, 500)
         }
 
         clubsUpdated = true;
@@ -294,7 +211,10 @@ export async function handleUpdateMember(req: Request, supabaseClient: SupabaseC
     // If nothing was updated
     if (Object.keys(updateData).length === 0 && !clubsUpdated) {
       console.log(`[MEMBER-PUT] No changes to apply`);
-      return successResponse({ message: "No changes to apply" })
+      return successResponse({
+        success: true,
+        message: "No changes to apply"
+      })
     }
 
     const responseData = {

@@ -304,7 +304,8 @@ Deno.test({
         discussions: [
           {
             id: discussionId,
-            title: 'Updated Title'  // Update existing
+            title: 'Updated Title',  // Update existing
+            date: '2025-11-15'
           },
           {
             title: 'New Discussion',  // Add new

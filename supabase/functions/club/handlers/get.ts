@@ -43,7 +43,7 @@ export async function handleGetClub(req: Request, supabaseClient: SupabaseClient
       console.log(`[CLUB-GET] Searching for club with discord_channel: "${discordChannel}" and server_id: "${serverId}"`)
       const { data: clubData, error: clubError } = await supabaseClient
         .from('clubs')
-        .select('id, name, discord_channel, server_id')
+        .select('id, name, discord_channel, server_id, founded_date')
         .eq('discord_channel', discordChannel)
         .eq('server_id', serverId)
         .single()
@@ -106,7 +106,7 @@ async function getFullClubDetails(supabaseClient: SupabaseClient, clubId: string
   // Build query dynamically based on whether server_id is provided
   let clubQuery = supabaseClient
     .from('clubs')
-    .select('id, name, discord_channel, server_id')
+    .select('id, name, discord_channel, server_id, founded_date')
     .eq('id', clubId)
 
   // Only filter by server_id if provided (Discord use case)
@@ -176,6 +176,8 @@ async function getFullClubDetails(supabaseClient: SupabaseClient, clubId: string
           name: member.name,
           points: member.points,
           books_read: member.books_read,
+          handle: member.handle,
+          created_at: member.created_at,
           clubs: memberClubs?.map((mc: Record<string, unknown>) => mc.club_id) || []
         }
       })
@@ -258,7 +260,8 @@ async function getFullClubDetails(supabaseClient: SupabaseClient, clubId: string
         author: bookData.author,
         edition: bookData.edition,
         year: bookData.year,
-        isbn: bookData.isbn
+        isbn: bookData.isbn,
+        page_count: bookData.page_count
       },
       due_date: session.due_date,
       discussions: discussionsData?.map(discussion => ({
@@ -308,6 +311,7 @@ async function getFullClubDetails(supabaseClient: SupabaseClient, clubId: string
     name: clubData.name,
     discord_channel: clubData.discord_channel,
     server_id: clubData.server_id,
+    founded_date: clubData.founded_date,
     members: membersWithClubs,
     active_session: active_session,
     past_sessions: past_sessions,

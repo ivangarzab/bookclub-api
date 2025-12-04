@@ -92,6 +92,7 @@ export async function assertErrorResponse(
   assertCorsHeaders(response);
 
   const body = await parseResponse(response);
+  assertEquals(body.success, false);
   assertExists(body.error);
 
   if (expectedErrorMessage) {

@@ -1,5 +1,5 @@
 // Tests for session edge function
-import { assertEquals, assertExists } from "https://deno.land/std@0.168.0/testing/asserts.ts";
+import { assertEquals, assertExists, assert } from "https://deno.land/std@0.168.0/testing/asserts.ts";
 import {
   createMockRequest,
   assertCorsHeaders,
@@ -174,7 +174,7 @@ Deno.test("Session - PUT updates discussions", async () => {
   const updateData = {
     id: mockSession.id,
     discussions: [
-      { id: mockDiscussion.id, title: "Updated Title" },
+      { id: mockDiscussion.id, title: "Updated Title", date: "2025-11-15" },
       { title: "New Discussion", date: "2025-12-01" }
     ]
   };
@@ -185,6 +185,86 @@ Deno.test("Session - PUT updates discussions", async () => {
   const body = await assertSuccessResponse(response);
   assertEquals(body.success, true);
   assertEquals(body.updates.discussions, true);
+});
+
+// Validation Tests
+Deno.test("Session - POST returns 400 when discussion missing title", async () => {
+  setupTest();
+  db.clubs.set(mockClub.id, mockClub);
+
+  const sessionData = {
+    club_id: mockClub.id,
+    book: {
+      title: "Test Book",
+      author: "Test Author"
+    },
+    discussions: [{ date: "2025-11-10", location: "Discord" }]
+  };
+
+  const req = createMockRequest('POST', 'http://localhost/session', sessionData);
+  const response = await handleRequest(req);
+
+  const body = await assertErrorResponse(response, 400);
+  assert(body.error.includes('title'));
+});
+
+Deno.test("Session - POST returns 400 when discussion missing date", async () => {
+  setupTest();
+  db.clubs.set(mockClub.id, mockClub);
+
+  const sessionData = {
+    club_id: mockClub.id,
+    book: {
+      title: "Test Book",
+      author: "Test Author"
+    },
+    discussions: [{ title: "Test Discussion", location: "Discord" }]
+  };
+
+  const req = createMockRequest('POST', 'http://localhost/session', sessionData);
+  const response = await handleRequest(req);
+
+  const body = await assertErrorResponse(response, 400);
+  assert(body.error.includes('date'));
+});
+
+Deno.test("Session - POST returns 400 when discussion has empty title", async () => {
+  setupTest();
+  db.clubs.set(mockClub.id, mockClub);
+
+  const sessionData = {
+    club_id: mockClub.id,
+    book: {
+      title: "Test Book",
+      author: "Test Author"
+    },
+    discussions: [{ title: "  ", date: "2025-11-10" }]
+  };
+
+  const req = createMockRequest('POST', 'http://localhost/session', sessionData);
+  const response = await handleRequest(req);
+
+  await assertErrorResponse(response, 400);
+});
+
+Deno.test("Session - PUT returns 400 when discussion missing required fields", async () => {
+  setupTest();
+  db.clubs.set(mockClub.id, mockClub);
+  db.books.set(mockBook.id, mockBook);
+  db.sessions.set(mockSession.id, mockSession);
+
+  const updateData = {
+    id: mockSession.id,
+    discussions: [
+      { title: "Valid", date: "2025-12-01" },
+      { title: "Invalid" }
+    ]
+  };
+
+  const req = createMockRequest('PUT', 'http://localhost/session', updateData);
+  const response = await handleRequest(req);
+
+  await assertErrorResponse(response, 400);
 });
 
 // DELETE Tests

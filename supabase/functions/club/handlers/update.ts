@@ -40,6 +40,7 @@ export async function handleUpdateClub(req: Request, supabaseClient: SupabaseCli
     const updateData: Record<string, unknown> = {}
     if (data.name !== undefined) updateData.name = data.name
     if (data.discord_channel !== undefined) updateData.discord_channel = data.discord_channel
+    if (data.founded_date !== undefined) updateData.founded_date = data.founded_date
 
     console.log(`[CLUB-PUT] Update data prepared:`, updateData)
 
@@ -109,7 +110,7 @@ export async function handleUpdateClub(req: Request, supabaseClient: SupabaseCli
       // Get current club data for response
       let getCurrentQuery = supabaseClient
         .from('clubs')
-        .select('id, name, discord_channel, server_id')
+        .select('id, name, discord_channel, server_id, founded_date')
         .eq('id', data.id)
 
       if (data.server_id) {

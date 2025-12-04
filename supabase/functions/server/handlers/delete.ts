@@ -56,6 +56,7 @@ export async function handleDeleteServer(req: Request, supabaseClient: SupabaseC
       console.log(`[SERVER-DELETE] Server has ${clubsData.length} clubs - cannot delete`);
       return new Response(
         JSON.stringify({
+          success: false,
           error: 'Cannot delete server with existing clubs. Please delete all clubs first.',
           clubs_count: clubsData.length
         }),

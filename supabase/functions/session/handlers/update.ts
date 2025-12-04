@@ -3,6 +3,7 @@
 
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { errorResponse, successResponse, corsHeaders } from '../utils/responses.ts'
+import { validateDiscussionsArray } from '../utils/validation.ts'
 
 /**
  * Handles PUT requests to update an existing session
@@ -126,20 +127,7 @@ export async function handleUpdateSession(req: Request, supabaseClient: Supabase
 
       if (clubError || !clubData) {
         console.log(`[SESSION-PUT] Club not found - returning 404`);
-        return new Response(
-          JSON.stringify({
-            error: 'Club not found',
-            partial_success: bookUpdated,
-            message: bookUpdated ? "Book was updated but session club_id was not" : null
-          }),
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              ...corsHeaders
-            },
-            status: 404
-          }
-        )
+        return errorResponse('Club not found', 404)
       }
 
       sessionUpdateData.club_id = data.club_id;
@@ -168,20 +156,7 @@ export async function handleUpdateSession(req: Request, supabaseClient: Supabase
 
       if (updateSessionError) {
         console.log(`[SESSION-PUT] Session update failed - returning 500`);
-        return new Response(
-          JSON.stringify({
-            error: updateSessionError.message,
-            partial_success: bookUpdated,
-            message: bookUpdated ? "Book was updated but session was not" : null
-          }),
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              ...corsHeaders
-            },
-            status: 500
-          }
-        )
+        return errorResponse(updateSessionError.message, 500)
       }
 
       sessionUpdated = true;
@@ -194,22 +169,10 @@ export async function handleUpdateSession(req: Request, supabaseClient: Supabase
     if (data.discussions !== undefined) {
       console.log(`[SESSION-PUT] Processing discussions update:`, data.discussions);
 
-      if (!Array.isArray(data.discussions)) {
-        console.log(`[SESSION-PUT] Invalid discussions format - returning 400`);
-        return new Response(
-          JSON.stringify({
-            error: 'Discussions must be an array',
-            partial_success: bookUpdated || sessionUpdated,
-            message: "Some updates were applied but discussions were not modified"
-          }),
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              ...corsHeaders
-            },
-            status: 400
-          }
-        )
+      const validation = validateDiscussionsArray(data.discussions)
+      if (!validation.valid) {
+        console.log(`[SESSION-PUT] Invalid discussion at index ${validation.invalidIndex} - returning 400`);
+        return errorResponse(validation.error || 'Invalid discussion data', 400)
       }
 
       // Get existing discussions
@@ -227,20 +190,7 @@ export async function handleUpdateSession(req: Request, supabaseClient: Supabase
 
       if (getDiscussionsError) {
         console.log(`[SESSION-PUT] Failed to get existing discussions - returning 500`);
-        return new Response(
-          JSON.stringify({
-            error: getDiscussionsError.message,
-            partial_success: bookUpdated || sessionUpdated,
-            message: "Some updates were applied but could not retrieve discussions"
-          }),
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              ...corsHeaders
-            },
-            status: 500
-          }
-        )
+        return errorResponse(getDiscussionsError.message, 500)
       }
 
       // Handle each discussion in the update
@@ -274,7 +224,8 @@ export async function handleUpdateSession(req: Request, supabaseClient: Supabase
               });
 
               if (updateError) {
-                console.error(`[SESSION-PUT] Error updating discussion ${discussion.id}: ${updateError.message}`);
+                console.error(`[SESSION-PUT] Warning: Discussion update failed: ${updateError.message}`);
+                // Continue - don't fail the entire update
               } else {
                 discussionsUpdated = true;
               }
@@ -283,11 +234,6 @@ export async function handleUpdateSession(req: Request, supabaseClient: Supabase
             console.log(`[SESSION-PUT] Creating new discussion with provided ID: "${discussion.id}"`);
 
             // Create new discussion with provided ID
-            if (!discussion.title || !discussion.date) {
-              console.log(`[SESSION-PUT] Skipping invalid discussion:`, discussion);
-              continue;
-            }
-
             const { error: insertError } = await supabaseClient
               .from("discussions")
               .insert({
@@ -304,7 +250,8 @@ export async function handleUpdateSession(req: Request, supabaseClient: Supabase
             });
 
             if (insertError) {
-              console.error(`[SESSION-PUT] Error adding discussion ${discussion.id}: ${insertError.message}`);
+              console.error(`[SESSION-PUT] Warning: Discussion insert failed: ${insertError.message}`);
+              // Continue - don't fail the entire update
             } else {
               discussionsUpdated = true;
             }
@@ -313,11 +260,6 @@ export async function handleUpdateSession(req: Request, supabaseClient: Supabase
           console.log(`[SESSION-PUT] Creating new discussion with generated ID`);
 
           // Create new discussion with generated ID
-          if (!discussion.title || !discussion.date) {
-            console.log(`[SESSION-PUT] Skipping invalid discussion:`, discussion);
-            continue;
-          }
-
           const { error: insertError } = await supabaseClient
             .from("discussions")
             .insert({
@@ -334,7 +276,8 @@ export async function handleUpdateSession(req: Request, supabaseClient: Supabase
           });
 
           if (insertError) {
-            console.error(`[SESSION-PUT] Error adding new discussion: ${insertError.message}`);
+            console.error(`[SESSION-PUT] Warning: Discussion insert failed: ${insertError.message}`);
+            // Continue - don't fail the entire update
           } else {
             discussionsUpdated = true;
           }
@@ -372,7 +315,10 @@ export async function handleUpdateSession(req: Request, supabaseClient: Supabase
     // If nothing was updated
     if (!bookUpdated && !sessionUpdated && !discussionsUpdated) {
       console.log(`[SESSION-PUT] No changes applied - returning message`);
-      return successResponse({ message: "No changes to apply" })
+      return successResponse({
+        success: true,
+        message: "No changes to apply"
+      })
     }
 
     const responseData = {
