@@ -5,7 +5,7 @@ info:
   version: 1.0.0
   x-logo:
   url: './mark-colorful.png'
-  altText: 'Book Club Logo'
+  altText: 'Kluvs Logo'
 servers:
   - url: http://localhost:54321/functions/v1
     description: Local Development
