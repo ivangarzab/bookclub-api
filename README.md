@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/mark-colorful.png" alt="logo" width="200" />
+</p>
+
 # Book Club API
 
 [![Tests](https://github.com/ivangarzab/bookclub-api/actions/workflows/test.yml/badge.svg)](https://github.com/ivangarzab/bookclub-api/actions/workflows/test.yml)
