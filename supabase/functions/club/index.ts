@@ -18,10 +18,10 @@ export async function handler(req: Request, supabaseClient?: SupabaseClient): Pr
 
   try {
     // Create Supabase client if not provided (for testing)
+    // Use service role key to bypass RLS (Edge Functions are trusted server-side code)
     const client = supabaseClient || createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
     // Determine which operation to perform based on HTTP method

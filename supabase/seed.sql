@@ -10,7 +10,7 @@ INSERT INTO Servers (id, name) VALUES
 
 -- Insert sample book clubs (using text for Snowflake IDs)
 INSERT INTO Clubs (id, name, discord_channel, server_id, founded_date) VALUES
-('club-1', 'Freaks & Geeks', '987654321098765432', '1039326367428395038', '2024-01-15'),
+('club-1', 'Freaks & Geeks', '1039326367973642363', '1039326367428395038', '2024-01-15'),
 ('club-2', 'Blingers Pilingers', '876543210987654321', '1039326367428395038', '2024-02-20'),
 ('club-3', 'Trifecta', '765432109876543210', '1234567890123456789', '2024-03-10'),
 ('club-4', 'Mystery Readers', '555666777888999000', '1234567890123456789', '2024-04-05'),

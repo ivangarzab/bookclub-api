@@ -265,10 +265,12 @@ See [DATABASE_SCHEMA.md](supabase/migrations/DATABASE_SCHEMA.md) for complete sc
 Local development uses `.env.local` (gitignored):
 ```
 SUPABASE_URL=http://127.0.0.1:54321
-SUPABASE_ANON_KEY=<local-anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<local-service-role-key>
 ```
 
 Production uses `.env.production` (gitignored, linked to Supabase project).
+
+**Note**: Edge Functions use the service role key to bypass RLS since they are trusted server-side code. Get the local service role key by running `supabase status`.
 
 ## Branch Strategy
 
