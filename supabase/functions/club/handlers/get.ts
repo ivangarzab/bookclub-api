@@ -1,7 +1,7 @@
 // supabase/functions/club/handlers/get.ts
 // Handles GET requests to retrieve club details
 
-import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { SupabaseClient } from 'npm:@supabase/supabase-js@2.76.1'
 import { errorResponse, successResponse, corsHeaders } from '../utils/responses.ts'
 import { validateServer } from '../utils/validation.ts'
 

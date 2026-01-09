@@ -1,7 +1,7 @@
 // supabase/functions/server/handlers/create.ts
 // Handles POST requests to create a new server
 
-import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { SupabaseClient } from 'npm:@supabase/supabase-js@2.76.1'
 import { errorResponse, successResponse } from '../utils/responses.ts'
 
 /**

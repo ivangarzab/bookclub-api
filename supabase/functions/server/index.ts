@@ -1,6 +1,6 @@
 // supabase/functions/server/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, SupabaseClient } from 'npm:@supabase/supabase-js@2.76.1'
 import { handleGetServer } from './handlers/get.ts'
 import { handleCreateServer } from './handlers/create.ts'
 import { handleUpdateServer } from './handlers/update.ts'
@@ -20,10 +20,10 @@ export async function handler(req: Request, supabaseClient?: SupabaseClient): Pr
     console.log(`[SERVER] === New ${req.method} request received ===`);
 
     // Create Supabase client if not provided (for testing)
+    // Use service role key to bypass RLS (Edge Functions are trusted server-side code)
     const client = supabaseClient || createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
     // Determine which operation to perform based on HTTP method

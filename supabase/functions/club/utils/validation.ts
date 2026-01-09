@@ -1,7 +1,7 @@
 // supabase/functions/club/utils/validation.ts
 // Validation helper functions
 
-import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { SupabaseClient } from 'npm:@supabase/supabase-js@2.76.1'
 
 /**
  * Validates that a server exists in the database

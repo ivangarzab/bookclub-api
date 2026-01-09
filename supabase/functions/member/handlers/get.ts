@@ -1,7 +1,7 @@
 // supabase/functions/member/handlers/get.ts
 // Handles GET requests to retrieve member details
 
-import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { SupabaseClient } from 'npm:@supabase/supabase-js@2.76.1'
 import { errorResponse, successResponse } from '../utils/responses.ts'
 
 /**

@@ -1,7 +1,7 @@
 // supabase/functions/session/handlers/create.ts
 // Handles POST requests to create a new session
 
-import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { SupabaseClient } from 'npm:@supabase/supabase-js@2.76.1'
 import { errorResponse, successResponse } from '../utils/responses.ts'
 import { validateDiscussionsArray } from '../utils/validation.ts'
 

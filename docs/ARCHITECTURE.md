@@ -2,6 +2,9 @@
 
 This document explains the system design, architecture decisions, and how all components of the Book Club API work together.
 
+**Related Documentation:**
+- [Security Guide](./SECURITY.md) - Detailed documentation of the API Gateway Pattern, security model, and authorization best practices
+
 ## Table of Contents
 
 - [System Overview](#system-overview)
@@ -16,38 +19,66 @@ This document explains the system design, architecture decisions, and how all co
 
 ## System Overview
 
-The Book Club API is a serverless backend built on Supabase Edge Functions that manages book clubs across multiple Discord servers. It provides a unified API for both Discord bot clients and web applications.
+The Book Club API is a serverless backend built on Supabase Edge Functions that manages book clubs across multiple Discord servers. It provides a unified API for all clients: Discord bot, web application, and mobile apps (iOS/Android).
 
 ### High-Level Architecture
 
 ```
-┌─────────────────┐         ┌──────────────────┐         ┌─────────────────┐
-│                 │         │                  │         │                 │
-│  Discord Bot    │◄───────►│  Supabase Edge   │◄───────►│   PostgreSQL    │
-│  (Client)       │  HTTPS  │   Functions      │   SQL   │   Database      │
-│                 │         │  (API Layer)     │         │                 │
-└─────────────────┘         └──────────────────┘         └─────────────────┘
-                                     ▲
-                                     │ HTTPS
-                                     │
-                            ┌────────▼────────┐
-                            │                 │
-                            │  Web App        │
-                            │  (Optional)     │
-                            │                 │
-                            └─────────────────┘
+                    ┌─────────────────────────────────────────────┐
+                    │          CLIENT APPLICATIONS                │
+                    │                                             │
+                    │  ┌──────────────┐   ┌──────────────┐        │
+                    │  │ Discord Bot  │   │   Web App    │        │
+                    │  │   (Python)   │   │   (React)    │        │
+                    │  └──────┬───────┘   └──────┬───────┘        │
+                    │         │                  │                │
+                    │         │     ┌────────────▼──────────┐     │
+                    │         │     │  Mobile Apps (KMP)    │     │
+                    │         │     │  • iOS                │     │
+                    │         │     │  • Android            │     │
+                    │         │     └────────────┬──────────┘     │
+                    └─────────┼──────────────────┼────────────────┘
+                              │                  │
+                              │      HTTPS       │
+                              │   (Auth JWT)     │
+                              │                  │
+                    ┌─────────▼──────────────────▼────────────────┐
+                    │      SUPABASE EDGE FUNCTIONS                │
+                    │         (API Gateway Layer)                 │
+                    │                                             │
+                    │  ┌──────┐  ┌──────┐  ┌─────────┐ ┌───────┐  │
+                    │  │Server│  │ Club │  │ Member  │ │Session│  │
+                    │  └──────┘  └──────┘  └─────────┘ └───────┘  │
+                    │                                             │
+                    │  • TypeScript authorization                 │
+                    │  • Service role key (bypasses RLS)          │
+                    │  • Validation & business logic              │
+                    └─────────────────┬───────────────────────────┘
+                                      │
+                                      │ SQL
+                                      │
+                    ┌─────────────────▼───────────────────────────┐
+                    │         POSTGRESQL DATABASE                 │
+                    │          (Supabase)                         │
+                    │                                             │
+                    │  • RLS enabled (inactive)                   │
+                    │  • Multi-server data isolation              │
+                    │  • 8 tables (servers, clubs, members, etc)  │
+                    └─────────────────────────────────────────────┘
 ```
 
 ### Technology Stack
 
 **Backend:**
-- **Supabase Edge Functions** - Deno-based serverless functions
+- **Supabase Edge Functions** - Deno-based serverless functions (API Gateway)
 - **PostgreSQL** - Relational database via Supabase
-- **TypeScript** - Type-safe API development
+- **TypeScript** - Type-safe API development with authorization logic
+- **Supabase Auth** - JWT-based authentication
 
-**Client:**
-- **Discord.js** (or similar) - Discord bot framework
-- **Any HTTP client** - API is framework-agnostic
+**Clients:**
+- **Discord Bot** - Python-based bot using discord.py
+- **Web Application** - React frontend at kluvs.com
+- **Mobile Apps** - Kotlin Multiplatform (KMP) for iOS and Android (in development)
 
 ---
 
@@ -174,25 +205,29 @@ WHERE mc.member_id = 1;
 ### Discord Bot → API
 
 ```
-1. Bot starts with Supabase anon key
+1. Bot makes API request to Edge Function endpoint
    ↓
-2. Makes API request with Authorization header
+2. Edge Function receives request (may include Authorization header)
    ↓
-3. Edge Function validates JWT token
+3. Edge Function uses service_role key internally (bypasses RLS)
    ↓
-4. Supabase client initialized with auth context
+4. Edge Function performs authorization logic in TypeScript
    ↓
-5. Database operations execute with proper permissions
+5. Database operations execute with full access
 ```
 
 **Example Request:**
 ```javascript
+// External clients (Discord bot, web, mobile) call Edge Functions
 fetch('https://project.supabase.co/functions/v1/club?id=club-1&server_id=123', {
   headers: {
-    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+    'Authorization': `Bearer ${USER_AUTH_TOKEN}`,  // Optional: for user identity
     'Content-Type': 'application/json'
   }
 })
+
+// Note: Edge Functions internally use service_role key to bypass RLS
+// Authorization logic is implemented in TypeScript within Edge Functions
 ```
 
 ### Web App → API (With User Authentication)
@@ -498,38 +533,56 @@ Discord Member ──linked via──> Supabase Auth User
 
 ## Security Model
 
-### Current Implementation
+### Current Implementation (API Gateway Pattern)
+
+This API uses an **API Gateway Pattern** where Edge Functions serve as the single, trusted entry point for all clients. See [SECURITY.md](./SECURITY.md) for comprehensive documentation.
 
 **Authentication:**
-- JWT token validation on every request
+- JWT token validation for user identity (optional, depending on endpoint)
 - Supabase manages token signing/verification
-- No custom auth logic needed
+- Edge Functions extract user info from JWT tokens
 
 **Authorization:**
-- Currently permissive (any valid token can access any data)
-- Relies on bot being trusted client
+- Implemented in TypeScript within Edge Functions
+- Edge Functions use service_role key to bypass RLS
+- Currently permissive (MVP phase) - future RBAC planned
+- Authorization logic will check `members.role` for admin/member permissions
+
+**Row-Level Security (RLS):**
+- RLS is **enabled** on all tables (Supabase requirement)
+- Temporary policies exist for `authenticated` role
+- Policies are **inactive** (service_role bypasses RLS entirely)
+- Edge Functions are trusted server-side code with full database access
 
 **Data Validation:**
 - Server existence checks before operations
 - Foreign key constraints prevent orphaned records
 - Input validation in Edge Functions
 
-### Future Improvements
+### Future Authorization Implementation
 
-**Row-Level Security (RLS):**
-```sql
--- Example: Users can only modify their own member record
-CREATE POLICY member_update ON members
-  FOR UPDATE USING (auth.uid() = user_id);
+**Role-Based Access Control (RBAC):**
+- Query `members.role` to determine permissions (admin, member, guest)
+- Implement in TypeScript Edge Function handlers
+- Admin-only operations (DELETE, etc.)
+- Member-only operations (UPDATE own data)
+
+**Example future implementation:**
+```typescript
+// Get user's role from JWT token
+const { data: member } = await client
+  .from('members')
+  .select('role')
+  .eq('user_id', user.id)
+  .single()
+
+// Enforce permissions in TypeScript
+if (operation === 'DELETE' && member?.role !== 'admin') {
+  return errorResponse('Forbidden: Admin only', 403)
+}
 ```
 
-**API Keys Per Server:**
-- Each Discord server could have unique API key
-- Prevent one compromised bot from affecting all servers
-
-**Audit Logging:**
-- Track who made what changes
-- Useful for debugging and compliance
+See [SECURITY.md](./SECURITY.md) for detailed security model, implementation patterns, and best practices.
 
 ---
 
