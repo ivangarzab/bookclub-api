@@ -46,8 +46,9 @@ Your local API is now running at `http://localhost:54321` 🚀
 ### Technical Documentation
 - [Database Schema](supabase/migrations/DATABASE_SCHEMA.md) - Complete schema reference and migration guide
 - [Testing Guide](TESTING.md) - Comprehensive testing documentation and best practices
-- [Architecture Overview](docs/ARCHITECTURE.md) - System design and multi-server architecture *(coming soon)*
-- [Development Guide](docs/DEVELOPMENT_GUIDE.md) - Detailed workflow and troubleshooting *(coming soon)*
+- [Architecture Overview](docs/ARCHITECTURE.md) - System design and multi-server architecture
+- [Security Guide](docs/SECURITY.md) - API Gateway pattern, security model, and authorization best practices
+- [Development Guide](docs/DEVELOPMENT_GUIDE.md) - Detailed workflow and troubleshooting
 
 ## Key Features
 
