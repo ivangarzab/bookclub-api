@@ -1,5 +1,5 @@
 // Mock Supabase client for testing
-import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { SupabaseClient } from 'npm:@supabase/supabase-js@2.76.1';
 
 /**
  * Mock data store for testing

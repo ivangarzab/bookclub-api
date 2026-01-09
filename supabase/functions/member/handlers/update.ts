@@ -1,7 +1,7 @@
 // supabase/functions/member/handlers/update.ts
 // Handles PUT requests to update an existing member
 
-import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { SupabaseClient } from 'npm:@supabase/supabase-js@2.76.1'
 import { errorResponse, successResponse, corsHeaders } from '../utils/responses.ts'
 
 /**
