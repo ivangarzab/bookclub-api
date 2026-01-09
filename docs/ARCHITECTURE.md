@@ -187,12 +187,15 @@ WHERE mc.member_id = 1;
 
 **Example Request:**
 ```javascript
+// External clients (Discord bot) can use anon key with their own auth
 fetch('https://project.supabase.co/functions/v1/club?id=club-1&server_id=123', {
   headers: {
-    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+    'Authorization': `Bearer ${YOUR_AUTH_TOKEN}`,
     'Content-Type': 'application/json'
   }
 })
+
+// Note: Edge Functions internally use service_role key to bypass RLS
 ```
 
 ### Web App → API (With User Authentication)
