@@ -1,6 +1,6 @@
 // supabase/functions/club/index.ts - Refactored with modular handlers
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, SupabaseClient } from 'npm:@supabase/supabase-js@2.76.1'
 import { corsHeaders } from './utils/responses.ts'
 import { handleGetClub } from './handlers/get.ts'
 import { handleCreateClub } from './handlers/create.ts'

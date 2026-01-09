@@ -1,7 +1,7 @@
 // supabase/functions/session/handlers/delete.ts
 // Handles DELETE requests to remove a session
 
-import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { SupabaseClient } from 'npm:@supabase/supabase-js@2.76.1'
 import { errorResponse, successResponse, corsHeaders } from '../utils/responses.ts'
 
 /**
